@@ -266,6 +266,7 @@ const changePassword = async ({
 
 // Refresh token
 const refreshToken = async (token: string) => {
+  console.log('token====', token);
   if (!token) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Token not found');
   }

@@ -31,22 +31,34 @@ const userCreateVarification = catchAsync(async (req, res) => {
   });
 });
 
-const userSwichRole = catchAsync(async (req, res) => {
-  const { userId } = req.user;
-  const newUser = await userService.userSwichRoleService(userId);
+// const userSwichRole = catchAsync(async (req, res) => {
+//   const { userId } = req.user;
+//   const newUser = await userService.userSwichRoleService(userId);
 
-  return sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Swich role successfully',
-    data: newUser,
-  });
-});
+//   return sendResponse(res, {
+//     statusCode: httpStatus.OK,
+//     success: true,
+//     message: 'Swich role successfully',
+//     data: newUser,
+//   });
+// });
 
 // rest >...............
 
 const getAllUsers = catchAsync(async (req, res) => {
   const result = await userService.getAllUserQuery(req.query);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    meta: result.meta,
+    data: result.result,
+    message: 'Users All are requered successful!!',
+  });
+});
+
+const getAllTenantUsers = catchAsync(async (req, res) => {
+  const result = await userService.getAllTenantUserQuery(req.query);
 
   sendResponse(res, {
     success: true,
@@ -150,13 +162,14 @@ const deleteMyAccount = catchAsync(async (req: Request, res: Response) => {
 export const userController = {
   createUser,
   userCreateVarification,
-  userSwichRole,
+  // userSwichRole,
   getUserById,
   getMyProfile,
   updateMyProfile,
   blockedUser,
   deleteMyAccount,
   getAllUsers,
+  getAllTenantUsers,
   getAllUserCount,
   getAllUserRasio,
 };

@@ -15,12 +15,12 @@ const NotificationSchema = new Schema<TNotification>(
     },
     role: {
       type: String,
-      enum: ['mentee', 'mentor', 'admin'],
+      enum: ['user', 'admin'],
       required: false,
     },
     type: {
       type: String,
-      enum: ['info', 'warning', 'error', 'success', 'reshedule', 'ugiToken'],
+      enum: ['info', 'warning', 'error', 'success'],
       required: true,
     },
     status: {
@@ -31,17 +31,6 @@ const NotificationSchema = new Schema<TNotification>(
     isRead: {
       type: Boolean,
       default: false,
-    },
-    isUgiToken: {
-      type: String,
-      required: false,
-      default: null,
-    },
-    serviceBookingId: {
-      type: Schema.Types.ObjectId,
-      required: false,
-      ref: 'ServiceBooking', // Reference to ServiceBooking model
-      default:null
     },
   },
   {

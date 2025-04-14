@@ -3,10 +3,8 @@ import { Types } from "mongoose";
 export type TNotification = {
   userId?: Types.ObjectId;
   message: string;
-  role?: 'admin' | 'mentee' | 'mentor';
-  type?: 'info' | 'warning' | 'error' | 'success' | 'reshedule' | 'ugiToken';
+  role?: 'admin' | 'user' ;
+  type?: 'info' | 'warning' | 'error' | 'success';
   status?: 'pending' | 'accept' | 'cancel';
   isRead: boolean;
-  isUgiToken?: string;
-  serviceBookingId?: Types.ObjectId;
 };

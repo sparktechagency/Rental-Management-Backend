@@ -5,12 +5,18 @@ import { authRoutes } from '../modules/auth/auth.route';
 
 import settingsRouter from '../modules/settings/setting.route';
 import notificationRoutes from '../modules/notification/notification.route';
-// import paymentRouter from '../modules/payment/payment.route';
+import paymentRouter from '../modules/payment/payment.route';
 // import walletRouter from '../modules/wallet/wallet.route';
 import withdrawRouter from '../modules/withdraw/withdraw.route';
 import reviewRouter from '../modules/ratings/ratings.route';
 import chatRouter from '../modules/chat/chat.route';
 import messageRouter from '../modules/message/message.route';
+import faqRouter from '../modules/faq/faq.route';
+import propertyRouter from '../modules/property/property.route';
+import invitePeopleRouter from '../modules/invitePeople/invitePeople.route';
+import agreementRouter from '../modules/agreement/agreement.route';
+import announcementsRouter from '../modules/announcements/announcements.route';
+import maintenanceRouter from '../modules/maintenance/maintenance.route';
 
 const router = Router();
 
@@ -40,15 +46,15 @@ const moduleRoutes = [
   //   path: '/wallet',
   //   route: walletRouter,
   // },
-  // {
-  //   path: '/payment',
-  //   route: paymentRouter,
-  // },
+  {
+    path: '/payment',
+    route: paymentRouter,
+  },
   {
     path: '/withdraw',
     route: withdrawRouter,
   },
-  
+
   {
     path: '/review',
     route: reviewRouter,
@@ -60,7 +66,31 @@ const moduleRoutes = [
   {
     path: '/message',
     route: messageRouter,
-  }
+  },
+  {
+    path: '/faq',
+    route: faqRouter,
+  },
+  {
+    path: '/property',
+    route: propertyRouter,
+  },
+  {
+    path: '/invite-people',
+    route: invitePeopleRouter,
+  },
+  {
+    path: '/agreement',
+    route: agreementRouter,
+  },
+  {
+    path: '/announcement',
+    route: announcementsRouter,
+  },
+  {
+    path: '/maintenance',
+    route: maintenanceRouter,
+  },
 ];
 moduleRoutes.forEach((route) => router.use(route.path, route.route));
 

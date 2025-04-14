@@ -1,171 +1,172 @@
-// import httpStatus from 'http-status';
-// import catchAsync from '../../utils/catchAsync';
-// import { paymentService, stripe } from './payment.service';
-// import sendResponse from '../../utils/sendResponse';
-// import Stripe from 'stripe';
-// import AppError from '../../error/AppError';
-// import config from '../../config';
+import httpStatus from 'http-status';
+import catchAsync from '../../utils/catchAsync';
+import { paymentService, stripe } from './payment.service';
+import sendResponse from '../../utils/sendResponse';
+import Stripe from 'stripe';
+import AppError from '../../error/AppError';
+import config from '../../config';
 // import { StripeAccount } from '../stripeAccount/stripeAccount.model';
 
-// const addPayment = catchAsync(async (req, res, next) => {
-//   const { userId } = req.user;
-//   const paymentData = req.body;
-//   paymentData.customerId = userId;
 
-//   const result = await paymentService.addPaymentService(req.body);
+const addPayment = catchAsync(async (req, res, next) => {
+  const { userId } = req.user;
+  const orderData = req.body;
+  orderData.userId = userId;
 
-//   if (result) {
-//     sendResponse(res, {
-//       statusCode: httpStatus.OK,
-//       success: true,
-//       message: 'Payment Successfull!!',
-//       data: result,
-//     });
-//   } else {
-//     sendResponse(res, {
-//       statusCode: httpStatus.BAD_REQUEST,
-//       success: true,
-//       message: 'Data is not found',
-//       data: {},
-//     });
-//   }
-// });
+  const result = await paymentService.addPaymentService(orderData);
 
-// const getAllPayment = catchAsync(async (req, res, next) => {
-//   const result = await paymentService.getAllPaymentService(req.query);
-//   // // console.log('result',result)
+  if (result) {
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Payment Successfull!!',
+      data: result,
+    });
+  } else {
+    sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: true,
+      message: 'Data is not found',
+      data: {},
+    });
+  }
+});
 
-//   if (result) {
-//     sendResponse(res, {
-//       statusCode: httpStatus.OK,
-//       success: true,
-//       message: 'Payment are retrived Successfull!!',
-//       data: result,
-//     });
-//   } else {
-//     sendResponse(res, {
-//       statusCode: httpStatus.BAD_REQUEST,
-//       success: true,
-//       message: 'Data is not found',
-//       data: {},
-//     });
-//   }
-// });
+const getAllPayment = catchAsync(async (req, res, next) => {
+  const result = await paymentService.getAllPaymentService(req.query);
+  // // console.log('result',result)
 
-// const getAllPaymentByCustormer = catchAsync(async (req, res, next) => {
-//   const { userId } = req.user;
-//   console.log('customer id', userId); 
-//   const result = await paymentService.getAllPaymentByCustomerService(
-//     req.query,
-//     userId,
-//   );
-//   // // console.log('result',result)
-//   if (result) {
-//     sendResponse(res, {
-//       statusCode: httpStatus.OK,
-//       success: true,
-//       message: 'My Payment are retrived Successfull!',
-//       data: result,
-//     });
-//   } else {
-//     sendResponse(res, {
-//       statusCode: httpStatus.BAD_REQUEST,
-//       success: true,
-//       message: 'Data is not found',
-//       data: {},
-//     });
-//   }
-// });
+  if (result) {
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Payment are retrived Successfull!!',
+      data: result,
+    });
+  } else {
+    sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: true,
+      message: 'Data is not found',
+      data: {},
+    });
+  }
+});
 
-// const getSinglePayment = catchAsync(async (req, res, next) => {
-//   const result = await paymentService.singlePaymentService(req.params.id);
+const getAllPaymentByCustormer = catchAsync(async (req, res, next) => {
+  const { userId } = req.user;
+  console.log('customer id', userId); 
+  const result = await paymentService.getAllPaymentByCustomerService(
+    req.query,
+    userId,
+  );
+  // // console.log('result',result)
+  if (result) {
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'My Payment are retrived Successfull!',
+      data: result,
+    });
+  } else {
+    sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: true,
+      message: 'Data is not found',
+      data: {},
+    });
+  }
+});
 
-//   if (result) {
-//     sendResponse(res, {
-//       statusCode: httpStatus.OK,
-//       success: true,
-//       message: 'Single Payment are retrived Successfull!',
-//       data: result,
-//     });
-//   } else {
-//     sendResponse(res, {
-//       statusCode: httpStatus.BAD_REQUEST,
-//       success: true,
-//       message: 'Data is not found',
-//       data: {},
-//     });
-//   }
-// });
+const getSinglePayment = catchAsync(async (req, res, next) => {
+  const result = await paymentService.singlePaymentService(req.params.id);
 
-// const deleteSinglePayment = catchAsync(async (req, res, next) => {
-//   // give me validation data
-//   const result = await paymentService.deleteSinglePaymentService(req.params.id);
+  if (result) {
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Single Payment are retrived Successfull!',
+      data: result,
+    });
+  } else {
+    sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: true,
+      message: 'Data is not found',
+      data: {},
+    });
+  }
+});
 
-//   if (result) {
-//     sendResponse(res, {
-//       statusCode: httpStatus.OK,
-//       success: true,
-//       message: 'Single Delete Payment Successfull!!!',
-//       data: result,
-//     });
-//   } else {
-//     sendResponse(res, {
-//       statusCode: httpStatus.BAD_REQUEST,
-//       success: true,
-//       message: 'Data is not found',
-//       data: {},
-//     });
-//   }
-// });
+const deleteSinglePayment = catchAsync(async (req, res, next) => {
+  // give me validation data
+  const result = await paymentService.deleteSinglePaymentService(req.params.id);
 
-// const getAllIncomeRasio = catchAsync(async (req, res) => {
-//   const yearQuery = req.query.year;
+  if (result) {
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Single Delete Payment Successfull!!!',
+      data: result,
+    });
+  } else {
+    sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: true,
+      message: 'Data is not found',
+      data: {},
+    });
+  }
+});
 
-//   // Safely extract year as string
-//   const year = typeof yearQuery === 'string' ? parseInt(yearQuery) : undefined;
+const getAllIncomeRasio = catchAsync(async (req, res) => {
+  const yearQuery = req.query.year;
 
-//   if (!year || isNaN(year)) {
-//     return sendResponse(res, {
-//       success: false,
-//       statusCode: httpStatus.BAD_REQUEST,
-//       message: 'Invalid year provided!',
-//       data: {},
-//     });
-//   }
+  // Safely extract year as string
+  const year = typeof yearQuery === 'string' ? parseInt(yearQuery) : undefined;
 
-//   const result = await paymentService.getAllIncomeRatio(year);
+  if (!year || isNaN(year)) {
+    return sendResponse(res, {
+      success: false,
+      statusCode: httpStatus.BAD_REQUEST,
+      message: 'Invalid year provided!',
+      data: {},
+    });
+  }
 
-//   sendResponse(res, {
-//     success: true,
-//     statusCode: httpStatus.OK,
-//     data: result,
-//     message: 'Income All Ratio successful!!',
-//   });
-// });
+  const result = await paymentService.getAllIncomeRatio(year);
 
-// const getAllIncomeRasioBy7days = catchAsync(async (req, res) => {
-//   const { days }: any = req.query;
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    data: result,
+    message: 'Income All Ratio successful!!',
+  });
+});
 
-//   const result = await paymentService.getAllIncomeRatiobyDays(days);
+const getAllIncomeRasioBydays = catchAsync(async (req, res) => {
+  const { days }: any = req.query;
 
-//   sendResponse(res, {
-//     success: true,
-//     statusCode: httpStatus.OK,
-//     data: result,
-//     message: 'Income All Ratio successful!!',
-//   });
-// });
+  const result = await paymentService.getAllIncomeRatiobyDays(days);
 
-// //payment
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    data: result,
+    message: 'Income All Ratio successful!!',
+  });
+});
 
-// const successPage = catchAsync(async (req, res) => {
-//   // console.log('hit hoise');
-//   res.render('success.ejs');
-// });
+//payment
 
-// const cancelPage = catchAsync(async (req, res) => {
-//   res.render('cancel.ejs');
-// });
+const successPage = catchAsync(async (req, res) => {
+  // console.log('hit hoise');
+  res.render('success.ejs');
+});
+
+const cancelPage = catchAsync(async (req, res) => {
+  res.render('cancel.ejs');
+});
 
 // const successPageAccount = catchAsync(async (req, res) => {
 //   // console.log('payment account hit hoise');
@@ -214,38 +215,66 @@
 //   res.render('success-account.ejs');
 // });
 
-// //webhook
-// const createCheckout = catchAsync(async (req, res) => {
-//   const { userId } = req.user;
-//   const result = await paymentService.createCheckout(userId, req.body);
-//   sendResponse(res, {
-//     statusCode: 200,
-//     success: true,
-//     message: 'Payment initialized',
-//     data: result,
-//   });
-// });
+//webhook
 
-// const conformWebhook = catchAsync(async (req, res) => {
-//   // console.log('wabook hit hoise controller')
-//   const sig = req.headers['stripe-signature'];
-//   let event: Stripe.Event;
-//   try {
-//     // Verify the event using Stripe's library
-//     event = stripe.webhooks.constructEvent(
-//       req.body,
-//       sig as string,
-//       config.WEBHOOK,
-//     );
+const createCheckout = catchAsync(async (req, res) => {
+  const { userId } = req.user;
+  const result = await paymentService.createCheckout(userId, req.body);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Payment initialized',
+    data: result,
+  });
+});
 
-//     await paymentService.automaticCompletePayment(event);
-//   } catch (err) {
-//     console.error('Error verifying webhook signature:', err);
-//     // res.status(400).send('Webhook Error');
-//     throw new AppError(httpStatus.BAD_REQUEST, 'Webhook Error');
-//     // return;
-//   }
-// });
+const conformWebhook = catchAsync(async (req, res) => {
+  // console.log('wabook hit hoise controller')
+  const sig = req.headers['stripe-signature'];
+  let event: Stripe.Event;
+  try {
+    // Verify the event using Stripe's library
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      sig as string,
+      config.WEBHOOK,
+    );
+
+    await paymentService.automaticCompletePayment(event);
+  } catch (err) {
+    console.error('Error verifying webhook signature:', err);
+    // res.status(400).send('Webhook Error');
+    throw new AppError(httpStatus.BAD_REQUEST, 'Webhook Error');
+    // return;
+  }
+});
+
+
+const getAllEarningRasio = catchAsync(async (req, res) => {
+  const yearQuery = req.query.year;
+  const { userId } = req.user;
+
+  // Safely extract year as string
+  const year = typeof yearQuery === 'string' ? parseInt(yearQuery) : undefined;
+
+  if (!year || isNaN(year)) {
+    return sendResponse(res, {
+      success: false,
+      statusCode: httpStatus.BAD_REQUEST,
+      message: 'Invalid year provided!',
+      data: {},
+    });
+  }
+
+  const result = await paymentService.getAllEarningRatio(year, userId);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    data: result,
+    message: 'Earning All Ratio successful!!',
+  });
+});
 
 // const paymentRefund = catchAsync(async (req, res) => {
 //   const { amount, payment_intent } = req.body;
@@ -262,31 +291,7 @@
 //   });
 // });
 
-// const getAllEarningRasio = catchAsync(async (req, res) => {
-//   const yearQuery = req.query.year;
-//   const { userId } = req.user;
 
-//   // Safely extract year as string
-//   const year = typeof yearQuery === 'string' ? parseInt(yearQuery) : undefined;
-
-//   if (!year || isNaN(year)) {
-//     return sendResponse(res, {
-//       success: false,
-//       statusCode: httpStatus.BAD_REQUEST,
-//       message: 'Invalid year provided!',
-//       data: {},
-//     });
-//   }
-
-//   const result = await paymentService.getAllEarningRatio(year, userId);
-
-//   sendResponse(res, {
-//     success: true,
-//     statusCode: httpStatus.OK,
-//     data: result,
-//     message: 'Earning All Ratio successful!!',
-//   });
-// });
 
 // const getAllEarningByPaymentMethod = catchAsync(async (req, res) => {
 //   const { userId } = req.user;
@@ -302,23 +307,7 @@
 //   });
 // });
 
-// const getAllWithdrawEarningByPaymentMethod = catchAsync(async (req, res) => {
-//   const { userId } = req.user;
-//   const method = req.query.method as string;
 
-//   const result = await paymentService.filterWithdrawBalanceByPaymentMethod(
-//     method,
-//     userId,
-//   );
-//   // console.log('result', result);
-
-//   sendResponse(res, {
-//     success: true,
-//     statusCode: httpStatus.OK,
-//     data: result ? result : 0,
-//     message: 'Withdraw Availvle All balance  successful!!',
-//   });
-// });
 
 // const refreshAccountConnect = catchAsync(async (req, res) => {
 //   const { id } = req.params;
@@ -361,24 +350,24 @@
 //   });
 // });
 
-// export const paymentController = {
-//   addPayment,
-//   getAllPayment,
-//   getSinglePayment,
-//   deleteSinglePayment,
-//   getAllPaymentByCustormer,
-//   getAllIncomeRasio,
-//   getAllIncomeRasioBy7days,
-//   createCheckout,
-//   conformWebhook,
-//   successPage,
-//   cancelPage,
-//   successPageAccount,
-//   paymentRefund,
-//   getAllEarningRasio,
-//   getAllEarningByPaymentMethod,
-//   getAllWithdrawEarningByPaymentMethod,
-//   createStripeAccount,
-//   refreshAccountConnect,
-//   transferBalance,
-// };
+export const paymentController = {
+  addPayment,
+  getAllPayment,
+  getSinglePayment,
+  deleteSinglePayment,
+  getAllPaymentByCustormer,
+  getAllIncomeRasio,
+  getAllIncomeRasioBydays,
+  createCheckout,
+  conformWebhook,
+  successPage,
+  cancelPage,
+  getAllEarningRasio,
+  //   successPageAccount,
+  //   paymentRefund,
+  //   getAllEarningByPaymentMethod,
+  //   getAllWithdrawEarningByPaymentMethod,
+  //   createStripeAccount,
+  //   refreshAccountConnect,
+  //   transferBalance,
+};

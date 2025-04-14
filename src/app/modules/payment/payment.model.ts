@@ -4,23 +4,15 @@ import { TPayment } from './payment.interface';
 
 const paymentSchema = new Schema<TPayment>(
   {
-    customerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    serviceId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Service',
-      required: true,
-    },
-    businessId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Business',
-      required: true,
-    },
-    bookingprice: { type: Number, required: true },
-    depositAmount: { type: Number, required: true },
-    dipositParsentage: { type: Number, required: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     method: {
       type: String,
-      enum: ['stripe', 'google_pay', 'apple_pay'],
+      enum: ['stripe'],
+      required: true,
+      default: 'stripe',
+    },
+    amount: {
+      type: Number,
       required: true,
     },
     status: {
@@ -28,21 +20,10 @@ const paymentSchema = new Schema<TPayment>(
       enum: ['pending', 'paid', 'Failed'],
       default: 'pending',
     },
-
-    // bankDetails: {
-    //   accountNumber: { type: String },
-    //   accountName: { type: String },
-    //   bankName: { type: String },
-    // },
-    googlePayDetails: {
-      googleId: { type: String },
-    },
-    applePayDetails: {
-      appleId: { type: String },
-    },
     transactionId: {
       type: String,
-      required: false,
+      required: true,
+      unique:true
     },
     transactionDate: {
       type: Date,
@@ -52,9 +33,9 @@ const paymentSchema = new Schema<TPayment>(
       type: String,
       default: null,
     },
-    serviceBookingId: {
+    orderId: {
       type: Schema.Types.ObjectId,
-      ref: 'ServiceBooking',
+      ref: 'Order',
       required: true,
     },
   },
@@ -62,22 +43,7 @@ const paymentSchema = new Schema<TPayment>(
 );
 
 
-paymentSchema.pre('validate', function (next) {
-    if (this.method === 'google_pay') {
-      if (!this.googlePayDetails || !this.googlePayDetails.googleId) {
-        return next(
-          new Error('GooglePay details are required !'),
-        );
-      }
-    } else if (this.method === 'apple_pay') {
-      if (!this.applePayDetails || !this.applePayDetails.appleId) {
-        return next(
-          new Error('ApplePay details are required for !'),
-        );
-      }
-    }
-  next();
-});
+
 
 
 // paymentSchema.pre('validate', function (next) {

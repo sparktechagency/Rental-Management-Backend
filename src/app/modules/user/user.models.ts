@@ -4,6 +4,8 @@ import bcrypt from 'bcrypt';
 import { TUser, UserModel } from './user.interface';
 import { gender, Role, USER_ROLE } from './user.constants';
 
+
+
 const userSchema = new Schema<TUser>(
   {
     image: {
@@ -17,7 +19,7 @@ const userSchema = new Schema<TUser>(
     email: {
       type: String,
       required: true,
-      // unique: true,
+      unique: true,
     },
     role: {
       type: String,
@@ -32,12 +34,39 @@ const userSchema = new Schema<TUser>(
     phone: {
       type: String,
       required: false,
-      default: ' ',
+      default: null,
+    },
+    address: {
+      type: String,
+      required: false,
+      default: null,
     },
     dateOfBirth: {
-      type: Date,
+      type: String,
       required: false,
+      default: null,
     },
+    nationalIdNum: {
+      type: String,
+      required: false,
+      default: null,
+    },
+    emergencyContactPerson: {
+      type: String,
+      required: false,
+      default: null,
+    },
+    emergencyContactPersonNum: {
+      type: String,
+      required: false,
+      default: null,
+    },
+    additionalInfo: {
+      type: String,
+      required: false,
+      default: null,
+    },
+
     isActive: {
       type: Boolean,
       default: true,
@@ -46,58 +75,6 @@ const userSchema = new Schema<TUser>(
       type: Boolean,
       default: false,
     },
-    pegnensi: {
-      type: Boolean,
-      required: false,
-      default: false,
-    },
-    allergies: {
-      type: Boolean,
-      required: false,
-      default: false,
-    },
-    address: {
-      type: String,
-      required: false,
-      default: ' ',
-    },
-    aleargiesDetails: {
-      type: String,
-      required: false,
-      default: ' ',
-    },
-    asRole: {
-      type: String,
-      enum: ['customer_business', 'customer', 'business'],
-      required: false,
-      default: ' ',
-    },
-    postalCode: {
-      type: String,
-      required: false,
-      default: ' ',
-    },
-    addressLine1: {
-      type: String,
-      required: false,
-      default: ' ',
-    },
-    addressLine2: {
-      type: String,
-      required: false,
-      default: ' ',
-    },
-    townCity: {
-      type: String,
-      required: false,
-      default: ' ',
-    },
-    country: {
-      type: String,
-      required: false,
-      default: ' ',
-    },
-    
   },
   {
     timestamps: true,

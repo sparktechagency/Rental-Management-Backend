@@ -22,16 +22,16 @@ userRoutes
     validateRequest(resentOtpValidations.verifyOtpZodSchema),
     userController.userCreateVarification,
   )
-  .post(
-    '/swich-role',
-    auth(USER_ROLE.CUSTOMER, USER_ROLE.BUSINESS),
-    userController.userSwichRole,
-  )
+  // .post(
+  //   '/swich-role',
+  //   auth(USER_ROLE.CUSTOMER, USER_ROLE.BUSINESS),
+  //   userController.userSwichRole,
+  // )
   .get(
     '/my-profile',
     auth(
-      USER_ROLE.CUSTOMER,
-      USER_ROLE.BUSINESS,
+      USER_ROLE.TENANT,
+      USER_ROLE.LANDLORD,
       USER_ROLE.ADMIN,
       USER_ROLE.SUB_ADMIN,
       USER_ROLE.SUPER_ADMIN,
@@ -39,6 +39,7 @@ userRoutes
     userController.getMyProfile,
   )
   .get('/all-users', userController.getAllUsers)
+  .get('/all-tenant-user', userController.getAllTenantUsers)
   .get('/all-users-count', userController.getAllUserCount)
   .get('/all-users-rasio', userController.getAllUserRasio)
   .get('/:id', userController.getUserById)
@@ -46,8 +47,8 @@ userRoutes
   .patch(
     '/update-my-profile',
     auth(
-      USER_ROLE.BUSINESS,
-      USER_ROLE.CUSTOMER,
+      USER_ROLE.TENANT,
+      USER_ROLE.LANDLORD,
       USER_ROLE.ADMIN,
       USER_ROLE.SUB_ADMIN,
       USER_ROLE.SUPER_ADMIN,
@@ -59,8 +60,8 @@ userRoutes
   .delete(
     '/delete-my-account',
     auth(
-      USER_ROLE.BUSINESS,
-      USER_ROLE.CUSTOMER,
+      USER_ROLE.TENANT,
+      USER_ROLE.LANDLORD,
       USER_ROLE.ADMIN,
       USER_ROLE.SUB_ADMIN,
       USER_ROLE.SUPER_ADMIN,

@@ -1,319 +1,181 @@
-// import AppError from '../../error/AppError';
-// import { User } from '../user/user.models';
-// import { TPayment } from './payment.interface';
-// import { Payment } from './payment.model';
-// import QueryBuilder from '../../builder/QueryBuilder';
-// import moment from 'moment';
-// import Stripe from 'stripe';
-// import httpStatus from 'http-status';
-// import config from '../../config';
-// import mongoose from 'mongoose';
-// import { StripeAccount } from '../stripeAccount/stripeAccount.model';
-// import { withdrawService } from '../withdraw/withdraw.service';
-// import { Withdraw } from '../withdraw/withdraw.model';
-// import cron from 'node-cron';
+import AppError from '../../error/AppError';
+import { User } from '../user/user.models';
+import { TPayment } from './payment.interface';
+import { Payment } from './payment.model';
+import QueryBuilder from '../../builder/QueryBuilder';
+import moment from 'moment';
+import Stripe from 'stripe';
+import httpStatus from 'http-status';
+import config from '../../config';
+import mongoose from 'mongoose';
+import { StripeAccount } from '../stripeAccount/stripeAccount.model';
+import { withdrawService } from '../withdraw/withdraw.service';
+import { Withdraw } from '../withdraw/withdraw.model';
+import cron from 'node-cron';
+import { notificationService } from '../notification/notification.service';
 
-// // console.log({ first: config.stripe.stripe_api_secret });
+type SessionData = Stripe.Checkout.Session;
 
-// export const stripe = new Stripe(
-//   config.stripe.stripe_api_secret as string,
-//   //      {
-//   //   apiVersion: '2024-09-30.acacia',
-//   // }
-// );
+// console.log({ first: config.stripe.stripe_api_secret });
 
-// const addPaymentService = async (payload: any) => {
-//   const session = await mongoose.startSession(); // Start a session
-//   session.startTransaction();
+export const stripe = new Stripe(
+  config.stripe.stripe_api_secret as string,
+  //      {
+  //   apiVersion: '2024-09-30.acacia',
+  // }
+);
 
-//   // console.log('payment data', payload);
+// console.log('stripe==', stripe);
 
-//   try {
-//     // console.log('console.log-1');
-//     const {
-//       customerId,
-//       serviceId,
-//       businessId,
-//       bookingprice,
-//       depositAmount,
-//       dipositParsentage,
-//       bookingDate,
-//       duration,
-//       bookingStartTime,
-//       method,
-//       googlePayDetails,
-//       applePayDetails,
-//       ugiTokenAmount,
-//       ugiTokenId,
-//       businessType
-//     } = payload;
+const addPaymentService = async (payload: any) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-//     const user = await User.findById(customerId).session(session);
-//     if (!user) {
-//       throw new AppError(400, 'User is not found!');
-//     }
+  // console.log('payment data', payload);
 
-//     if (user.role !== 'customer') {
-//       throw new AppError(400, 'User is not authorized as a User!!');
-//     }
+  try {
+    // console.log('console.log-1');
+    const newPayload: any = {};
+    console.log('payload==', payload);
 
-//     const buisness = await Business.findOne({ businessId }).session(session);
-//     if (!buisness) {
-//       throw new AppError(400, 'Business is not found!');
-//     }
+    const user = await User.findById(payload.userId).session(session);
+    if (!user) {
+      throw new AppError(400, 'User is not found!');
+    }
 
-//     const service = await Service.findById(serviceId).session(session);
-//     if (!service) {
-//       throw new AppError(400, 'Service is not found!');
-//     }
+    if (user.role !== 'tenant') {
+      throw new AppError(400, 'User is not authorized as a User!!');
+    }
 
-//     if (!depositAmount || depositAmount <= 0) {
-//       throw new AppError(
-//         400,
-//         'Invalid deposit amount. It must be a positive number.',
-//       );
-//     }
-//     if (!bookingprice || bookingprice <= 0) {
-//       throw new AppError(
-//         400,
-//         'Invalid booking amount. It must be a positive number.',
-//       );
-//     }
+    newPayload.orderDate = new Date();
 
-//     if (!dipositParsentage || dipositParsentage <= 0) {
-//       throw new AppError(
-//         400,
-//         'Invalid deposit percentage. It must be a positive number.',
-//       );
-//     }
+   
 
-//     const validMethods = ['google_pay', 'apple_pay', 'stripe'];
-//     if (!method || !validMethods.includes(method)) {
-//       throw new AppError(400, 'Invalid payment method.');
-//     }
+    // const order = await Order.create([newPayload], { session });
 
-//     if (method === 'google_pay') {
-//       if (!googlePayDetails || !googlePayDetails.googleId) {
-//         throw new AppError(400, 'Google Pay token is required!');
-//       }
-//     } else if (method === 'apple_pay') {
-//       if (!applePayDetails || !applePayDetails.appleId) {
-//         throw new AppError(400, 'Apple Pay token is required!');
-//       }
-//     }
+    // if (!order[0]) {
+    //   throw new AppError(400, 'Failed to create order!');
+    // }
 
-//     // const paymentResult = await Payment.create([paymentData], { session });
+    const paymentInfo = {
+      // orderId: order[0]._id,
+      // amount: order[0].totalAmount,
+    };
 
-//     // if (!paymentResult) {
-//     //   throw new AppError(400, 'Payment is not created!');
-//     // }
+    // console.log('======stripe payment');
+    const checkoutResult: any = await createCheckout(
+      payload.userId,
+      paymentInfo,
+    );
 
-//     const startTimeOld = moment(bookingStartTime, 'hh:mm A');
-//     const endTimeOld = startTimeOld.clone().add(duration - 1, 'minutes');
-//     const startTime = startTimeOld.format('hh:mm A');
-//     const endTime = endTimeOld.format('hh:mm A');
+    if (!checkoutResult) {
+      throw new AppError(400, 'Failed to create checkout session!');
+    }
 
-//     const bookingData: any = {
-//       customerId,
-//       serviceId,
-//       businessId,
-//       bookingprice,
-//       depositAmount,
-//       dipositParsentage,
-//       // status: 'booking',
-//       bookingDate,
-//       duration,
-//       bookingStartTime: startTime,
-//       bookingEndTime: endTime,
-//       ugiTokenAmount: ugiTokenAmount || null,
-//       ugiTokenId: ugiTokenId || null,
-//       businessType
-//     };
+    // Commit transaction
+    await session.commitTransaction();
+    session.endSession();
+    return checkoutResult;
+  } catch (error) {
+    console.error('Transaction Error:', error);
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
+};
 
-//     console.log('bookingData========================' );
-//     console.log(bookingData);
-//     const serviceBookingResult =
-//       await serviceBookingService.createServiceBooking(bookingData, session);
-//     // console.log('bookingData ==2  ====',  serviceBookingResult );
-//     if (!serviceBookingResult) {
-//       throw new AppError(400, 'Failed to create service booking!');
-//     }
+const getAllPaymentService = async (query: Record<string, unknown>) => {
+  const PaymentQuery = new QueryBuilder(Payment.find(), query)
+    .search(['name'])
+    .filter()
+    .sort()
+    .paginate()
+    .fields();
 
-    
+  const result = await PaymentQuery.modelQuery;
+  const meta = await PaymentQuery.countTotal();
+  return { meta, result };
+};
+const getAllPaymentByCustomerService = async (
+  query: Record<string, unknown>,
+  customerId: string,
+) => {
+  const PaymentQuery = new QueryBuilder(
+    Payment.find({ customerId, status: 'paid' }).populate({
+      path: 'serviceId',
+      select: 'serviceName servicePrice',
+      populate: { path: 'businessId', select: 'businessName' },
+    }),
+    // .populate('businessId'),
+    query,
+  )
+    .search(['name'])
+    .filter()
+    .sort()
+    .paginate()
+    .fields();
 
-//     const paymentInfo = {
-//       serviceBookingId: serviceBookingResult[0]._id,
-//       depositAmount: depositAmount,
-//     };
-//     let result;
+  const result = await PaymentQuery.modelQuery;
+  const meta = await PaymentQuery.countTotal();
+  return { meta, result };
+};
 
-//     if (method === 'stripe') {
-//       // console.log('======stripe payment');
-//       const checkoutResult: any = await createCheckout(customerId, paymentInfo);
+const singlePaymentService = async (id: string) => {
+  const task = await Payment.findById(id);
+  return task;
+};
 
-//       if (!checkoutResult) {
-//         throw new AppError(400, 'Failed to create checkout session!');
-//       }
+const deleteSinglePaymentService = async (id: string) => {
+  const result = await Payment.deleteOne({ _id: id });
+  return result;
+};
 
-//       result = checkoutResult;
-//     } else {
-//       const paymentData: any = {
-//         customerId,
-//         serviceId,
-//         businessId,
-//         bookingprice,
-//         depositAmount,
-//         dipositParsentage,
-//         method,
-//         transactionId: payload.transactionId,
-//         transactionDate: bookingDate,
-//         serviceBookingId: serviceBookingResult[0]._id,
-//         status: 'paid',
-//       };
+const getAllIncomeRatio = async (year: number) => {
+  const startOfYear = new Date(year, 0, 1);
+  const endOfYear = new Date(year + 1, 0, 1);
 
-//       if (method === 'google_pay') {
-//         paymentData.googlePayDetails = googlePayDetails;
-//       } else if (method === 'apple_pay') {
-//         paymentData.applePayDetails = applePayDetails;
-//       }
+  const months = Array.from({ length: 12 }, (_, i) => ({
+    month: i + 1,
+    totalIncome: 0,
+  }));
 
-//       const paymentResult = await Payment.create([paymentData], {
-//         session,
-//       });
+  // console.log({ months });
 
-//       if (!paymentResult) {
-//         throw new AppError(400, 'Payment is not created!');
-//       }
+  const incomeData = await Payment.aggregate([
+    {
+      $match: {
+        transactionDate: { $gte: startOfYear, $lt: endOfYear },
+      },
+    },
+    {
+      $group: {
+        _id: { month: { $month: '$transactionDate' } },
+        totalIncome: { $sum: '$amount' },
+      },
+    },
+    {
+      $project: {
+        month: '$_id.month',
+        totalIncome: 1,
+        _id: 0,
+      },
+    },
+    {
+      $sort: { month: 1 },
+    },
+  ]);
 
-//       const serviceUpdate = await ServiceBooking.findByIdAndUpdate(
-//         serviceBookingResult[0]._id,
-//         { paymentStatus: 'upcoming', status: 'booking' },
-//         { new: true, session },
-//       );
+  incomeData.forEach((data) => {
+    const monthData = months.find((m) => m.month === data.month);
+    if (monthData) {
+      monthData.totalIncome = data.totalIncome;
+    }
+  });
 
-//       if (!serviceUpdate) {
-//         throw new AppError(400, 'Failed to service Modal Update!');
-//       }
+  // console.log({ months });
 
-//       result = paymentResult[0];
-//     }
-
-//     // Commit transaction
-//     await session.commitTransaction();
-//     session.endSession();
-//     return result;
-//   } catch (error) {
-//     console.error('Transaction Error:', error);
-//     await session.abortTransaction();
-//     session.endSession();
-//     throw error;
-//   }
-// };
-
-// const getAllPaymentService = async (query: Record<string, unknown>) => {
-//   const PaymentQuery = new QueryBuilder(
-//     Payment.find().populate({
-//       path: 'serviceBookingId',
-//       select: 'serviceId', // Populate the full mentorId object (not just the ObjectId)
-//       populate: {
-//         path: 'serviceId',
-//         select: 'businessId',
-//         populate: { path: 'businessId', select: 'businessName' },
-//       },
-//     }),
-//     query,
-//   )
-//     .search(['name'])
-//     .filter()
-//     .sort()
-//     .paginate()
-//     .fields();
-
-//   const result = await PaymentQuery.modelQuery;
-//   const meta = await PaymentQuery.countTotal();
-//   return { meta, result };
-// };
-// const getAllPaymentByCustomerService = async (
-//   query: Record<string, unknown>,
-//   customerId: string,
-// ) => {
-//   const PaymentQuery = new QueryBuilder(
-//     Payment.find({ customerId, status: 'paid' }).populate({
-//       path: 'serviceId',
-//       select: 'serviceName servicePrice',
-//       populate: { path: 'businessId', select: 'businessName' },
-//     }),
-//     // .populate('businessId'),
-//     query,
-//   )
-//     .search(['name'])
-//     .filter()
-//     .sort()
-//     .paginate()
-//     .fields();
-
-//   const result = await PaymentQuery.modelQuery;
-//   const meta = await PaymentQuery.countTotal();
-//   return { meta, result };
-
-// };
-
-// const singlePaymentService = async (id: string) => {
-//   const task = await Payment.findById(id);
-//   return task;
-// };
-
-// const deleteSinglePaymentService = async (id: string) => {
-//   const result = await Payment.deleteOne({ _id: id });
-//   return result;
-// };
-
-// const getAllIncomeRatio = async (year: number) => {
-//   const startOfYear = new Date(year, 0, 1);
-//   const endOfYear = new Date(year + 1, 0, 1);
-
-//   const months = Array.from({ length: 12 }, (_, i) => ({
-//     month: i + 1,
-//     totalIncome: 0,
-//   }));
-
-//   // console.log({ months });
-
-//   const incomeData = await Payment.aggregate([
-//     {
-//       $match: {
-//         transactionDate: { $gte: startOfYear, $lt: endOfYear },
-//       },
-//     },
-//     {
-//       $group: {
-//         _id: { month: { $month: '$transactionDate' } },
-//         totalIncome: { $sum: '$depositAmount' },
-//       },
-//     },
-//     {
-//       $project: {
-//         month: '$_id.month',
-//         totalIncome: 1,
-//         _id: 0,
-//       },
-//     },
-//     {
-//       $sort: { month: 1 },
-//     },
-//   ]);
-
-//   incomeData.forEach((data) => {
-//     const monthData = months.find((m) => m.month === data.month);
-//     if (monthData) {
-//       monthData.totalIncome = data.totalIncome;
-//     }
-//   });
-
-//   // console.log({ months });
-
-//   return months;
-// };
+  return months;
+};
 
 // const getAllIncomeRatiobyDays = async (days: string) => {
 //   const currentDay = new Date();
@@ -327,7 +189,6 @@
 //     throw new Error("Invalid value for 'days'. Use '7day' or '24hour'.");
 //   }
 
-//   // console.log(`Fetching income data from ${startDate} to ${currentDay}`);
 
 //   const timeSlots =
 //     days === '7day'
@@ -372,17 +233,30 @@
 //                   },
 //                 },
 //               },
-//         totalIncome: { $sum: '$depositAmount' },
+//         totalIncome: { $sum: '$amount' },
 //       },
 //     },
+//     // {
+//     //   $project: {
+//     //     dateHour: days === '7day' ? '$_id.date' : null,
+//     //     dateHour: days === '24hour' ? '$_id.hour' : null,
+//     //     totalIncome: 1,
+//     //     _id: 0,
+//     //   },
+//     // },
 //     {
-//       $project: {
-//         date: days === '7day' ? '$_id.date' : null,
-//         hour: days === '24hour' ? '$_id.hour' : null,
-//         totalIncome: 1,
-//         _id: 0,
+//   $project: {
+//     dateHour: {
+//       $cond: {
+//         if: { $eq: [days, '7day'] },
+//         then: '$_id.date', // For 7day, use the date field
+//         else: '$_id.hour', // For 24hour, use the hour field
 //       },
 //     },
+//     totalIncome: 1,
+//     _id: 0,
+//   },
+// },
 //     {
 //       $sort: { [days === '7day' ? 'date' : 'hour']: 1 },
 //     },
@@ -405,196 +279,315 @@
 //   return timeSlots;
 // };
 
-// const createCheckout = async (userId: any, payload: any) => {
-//   // console.log('stripe payment', payload);
-//   let session = {} as { id: string };
+const getAllIncomeRatiobyDays = async (days: string) => {
+  const currentDay = new Date();
+  let startDate: Date;
 
-//   // const lineItems = products.map((product) => ({
-//   //   price_data: {
-//   //     currency: 'usd',
-//   //     product_data: {
-//   //       name: 'Order Payment',
-//   //       description: 'Payment for user order',
-//   //     },
-//   //     unit_amount: Math.round(product.price * 100),
-//   //   },
-//   //   quantity: product.quantity,
-//   // }));
+  if (days === '7day') {
+    startDate = new Date(currentDay.getTime() - 7 * 24 * 60 * 60 * 1000);
+  } else if (days === '24hour') {
+    startDate = new Date(currentDay.getTime() - 24 * 60 * 60 * 1000);
+  } else {
+    throw new Error("Invalid value for 'days'. Use '7day' or '24hour'.");
+  }
 
-//   const lineItems = [
-//     {
-//       price_data: {
-//         currency: 'usd',
-//         product_data: {
-//           name: 'Amount',
-//         },
-//         unit_amount: payload.depositAmount * 100,
-//       },
-//       quantity: 1,
-//     },
-//   ];
+  const timeSlots =
+    days === '7day'
+      ? Array.from({ length: 7 }, (_, i) => {
+          const day = new Date(currentDay.getTime() - i * 24 * 60 * 60 * 1000);
+          return {
+            dateHour: day.toISOString().split('T')[0],
+            totalIncome: 0,
+          };
+        }).reverse()
+      : Array.from({ length: 24 }, (_, i) => {
+          const hour = new Date(currentDay.getTime() - i * 60 * 60 * 1000);
+          return {
+            dateHour: hour.toISOString(),
+            totalIncome: 0,
+          };
+        }).reverse();
 
-//   const sessionData: any = {
-//     payment_method_types: ['card'],
-//     mode: 'payment',
-//     success_url: `http://10.0.70.35:8020/api/v1/payment/success`,
-//     cancel_url: `http://10.0.70.35:8020/api/v1/payment/cancel`,
-//     line_items: lineItems,
-//     metadata: {
-//       userId: String(userId), // Convert userId to string
-//       serviceBookingId: String(payload.serviceBookingId),
-//       // products: payload,
-//     },
-//   };
+  const incomeData = await Payment.aggregate([
+    {
+      $match: {
+        transactionDate: { $gte: startDate, $lte: currentDay },
+      },
+    },
+    {
+      $group: {
+        _id:
+          days === '7day'
+            ? {
+                date: {
+                  $dateToString: {
+                    format: '%Y-%m-%d',
+                    date: '$transactionDate',
+                  },
+                },
+              }
+            : {
+                hour: {
+                  $dateToString: {
+                    format: '%Y-%m-%dT%H:00:00',
+                    date: '$transactionDate',
+                  },
+                },
+              },
+        totalIncome: { $sum: '$amount' },
+      },
+    },
+    {
+      $project: {
+        dateHour: days === '7day' ? '$_id.date' : '$_id.hour', // Rename to 'dateHour'
+        totalIncome: 1,
+        _id: 0,
+      },
+    },
+    {
+      $sort: { [days === '7day' ? 'date' : 'hour']: 1 },
+    },
+  ]);
 
-//   try {
-//     session = await stripe.checkout.sessions.create(sessionData);
+  incomeData.forEach((data) => {
+    if (days === '7day') {
+      const dayData = timeSlots.find((d: any) => d.dateHour === data.dateHour);
+      if (dayData) {
+        dayData.totalIncome = data.totalIncome;
+      }
+    } else if (days === '24hour') {
+      const hourData = timeSlots.find((h: any) => h.dateHour === data.dateHour);
+      if (hourData) {
+        hourData.totalIncome = data.totalIncome;
+      }
+    }
+  });
 
-//     // console.log('session', session.id);
-//   } catch (error) {
-//     // console.log('Error', error);
-//   }
+  return timeSlots;
+};
 
-//   // // console.log({ session });
-//   const { id: session_id, url }: any = session || {};
 
-//   // console.log({ url });
-//   // console.log({ url });
 
-//   return { url };
-// };
+const createCheckout = async (userId: any, payload: any) => {
+  console.log('stripe payment', payload);
+  let session = {} as { id: string };
 
-// const automaticCompletePayment = async (event: Stripe.Event): Promise<void> => {
-//   console.log('hit hise webhook controller servie')
-//   try {
-//     switch (event.type) {
-    
-//       case 'checkout.session.completed': {
-//         console.log('hit hise webhook controller servie checkout.session.completed');
-//         const session = event.data.object as Stripe.Checkout.Session;
-//         const sessionId = session.id;
-//         const paymentIntentId = session.payment_intent as string;
-//         const serviceBookingId =
-//           session.metadata && (session.metadata.serviceBookingId as string);
-//         // console.log('=======serviceBookingId', serviceBookingId);
-//         const customerId =
-//           session.metadata && (session.metadata.userId as string);
-//         console.log('=======customerId', customerId);
-//         // session.metadata && (session.metadata.serviceBookingId as string);
-//         if (!paymentIntentId) {
-//           throw new AppError(
-//             httpStatus.BAD_REQUEST,
-//             'Payment Intent ID not found in session',
-//           );
-//         }
+  // const lineItems = products.map((product) => ({
+  //   price_data: {
+  //     currency: 'usd',
+  //     product_data: {
+  //       name: 'Order Payment',
+  //       description: 'Payment for user order',
+  //     },
+  //     unit_amount: Math.round(product.price * 100),
+  //   },
+  //   quantity: product.quantity,
+  // }));
 
-//         const paymentIntent =
-//           await stripe.paymentIntents.retrieve(paymentIntentId);
+  const lineItems = [
+    {
+      price_data: {
+        currency: 'usd',
+        product_data: {
+          name: 'Amount',
+        },
+        unit_amount: payload.amount * 100,
+      },
+      quantity: 1,
+    },
+  ];
 
-//         if (!paymentIntent || paymentIntent.amount_received === 0) {
-//           throw new AppError(httpStatus.BAD_REQUEST, 'Payment Not Successful');
-//         }
+  console.log('lineItems=', lineItems);
 
-//         const updateServiceBooking = await ServiceBooking.findByIdAndUpdate(
-//           serviceBookingId,
-//           { paymentStatus: 'upcoming', status: 'booking' },
-//           { new: true },
-//         );
+  const sessionData: any = {
+    payment_method_types: ['card'],
+    mode: 'payment',
+    success_url: `http://10.0.70.35:8082/api/v1/payment/success`,
+    cancel_url: `http://10.0.70.35:8082/api/v1/payment/cancel`,
+    line_items: lineItems,
+    metadata: {
+      userId: String(userId), // Convert userId to string
+      orderId: String(payload.orderId),
+      // cartIds: payload.cartIds,
+      // cartIds: JSON.stringify(payload.cartIds),
+      // products: payload,
+    },
+  };
 
-//         console.log('===updateServiceBooking', updateServiceBooking);
+  console.log('sessionData=', sessionData);
 
-//         const paymentData: any = {
-//           customerId,
-//           serviceId: updateServiceBooking?.serviceId,
-//           businessId: updateServiceBooking?.businessId,
-//           bookingprice: updateServiceBooking?.bookingprice,
-//           depositAmount: updateServiceBooking?.depositAmount,
-//           dipositParsentage: updateServiceBooking?.dipositParsentage,
-//           method: 'stripe',
-//           transactionId: paymentIntentId,
-//           transactionDate: updateServiceBooking?.bookingDate,
-//           serviceBookingId: updateServiceBooking?._id,
-//           status: 'paid',
-//           session_id: sessionId,
-//         };
+  try {
+    console.log('try session');
+    session = await stripe.checkout.sessions.create(sessionData);
+    console.log('session==', session);
 
-//         const payment = await Payment.create(paymentData);
-//         console.log('===payment', payment);
+    // console.log('session', session.id);
+  } catch (error) {
+    console.log('Error', error);
+  }
 
-//         if (!payment || !updateServiceBooking) {
-//           console.warn(
-//             'No Payment  and ServiceBooking record was updated ',
-//             sessionId,
-//           );
+  console.log('try session 22');
+  // // console.log({ session });
+  const { id: session_id, url }: any = session || {};
 
-//           throw new AppError(httpStatus.BAD_REQUEST, 'Payment Not Updated');
-//         }
+  console.log({ url });
+  // console.log({ url });
 
-//         // const deletedServiceBooking = await ServiceBooking.findOneAndDelete({
-//         //   customerId, status: 'pending',
-//         // })
+  return { url };
+};
 
-//         // if (deletedServiceBooking) {
-//         //   // console.log('deleted sarvice booking successfully');
-//         // }
-//         const deletedServiceBookings = await ServiceBooking.deleteMany({
-//           customerId,
-//           status: 'pending',
-//         });
-//         console.log('deletedServiceBookings', deletedServiceBookings);
+const automaticCompletePayment = async (event: Stripe.Event): Promise<void> => {
+  console.log('hit hise webhook controller servie');
 
-//         if (deletedServiceBookings.deletedCount > 0) {
-//           console.log(
-//             `${deletedServiceBookings.deletedCount} bookings deleted successfully.`,
-//           );
-//         } else {
-//           // console.log('No matching bookings found.');
-//         }
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-//         console.log('Payment completed successfully:', {
-//           sessionId,
-//           paymentIntentId,
-//         });
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        console.log(
+          'hit hise webhook controller servie checkout.session.completed',
+        );
+        const sessionData = event.data.object as Stripe.Checkout.Session;
+        const {
+          id: sessionId,
+          payment_intent: paymentIntentId,
+          metadata,
+        }: SessionData = sessionData;
+        const orderId = metadata?.orderId as string;
+        const userId = metadata?.userId as string;
+        // const cartIds = JSON.parse(metadata?.cartIds as any);
+        // console.log('cartIds==', cartIds);
 
-//         break;
-//       }
+        // session.metadata && (session.metadata.serviceBookingId as string);
+        if (!paymentIntentId) {
+          throw new AppError(
+            httpStatus.BAD_REQUEST,
+            'Payment Intent ID not found in session',
+          );
+        }
 
-//       case 'checkout.session.async_payment_failed': {
-//         const session = event.data.object as Stripe.Checkout.Session;
-//         const clientSecret = session.client_secret;
-//         const sessionId = session.id;
+        const paymentIntent = await stripe.paymentIntents.retrieve(
+          paymentIntentId as string,
+        );
 
-//         if (!clientSecret) {
-//           console.warn('Client Secret not found in session.');
-//           throw new AppError(httpStatus.BAD_REQUEST, 'Client Secret not found');
-//         }
+        if (!paymentIntent || paymentIntent.amount_received === 0) {
+          throw new AppError(httpStatus.BAD_REQUEST, 'Payment Not Successful');
+        }
 
-//         // const payment = await Payment.findOne({ session_id: sessionId });
+      
+        // const order = await Order.findByIdAndUpdate(
+        //   orderId,
+        //   { paymentStatus: 'paid', status: 'completed'},
+        //   { new: true, session },
+        // );
 
-//         // if (payment) {
-//         //   payment.status = 'Failed';
-//         //   await payment.save();
-//         //   // console.log('Payment marked as failed:', { clientSecret });
-//         // } else {
-//         //   console.warn(
-//         //     'No Payment record found for Client Secret:',
-//         //     clientSecret,
-//         //   );
-//         // }
+        // if (!order) {
+        //   throw new AppError(httpStatus.BAD_REQUEST, 'Order not found');
+        // }
 
-//         break;
-//       }
+  
 
-//       default:
-//         // // console.log(`Unhandled event type: ${event.type}`);
-//         // res.status(400).send();
-//         return;
-//     }
-//   } catch (err) {
-//     console.error('Error processing webhook event:', err);
-//     // res.status(500).send('Internal Server Error');
-//   }
-// };
+        const paymentData: any = {
+          // userId: userId,
+          // amount: order?.totalAmount,
+          // method: 'stripe',
+          // transactionId: paymentIntentId,
+          // orderId: order?._id,
+          // status: 'paid',
+          // session_id: sessionId,
+          // transactionDate: order?.orderDate,
+        };
+
+        const payment = await Payment.create([paymentData], { session });
+        console.log('===payment', payment);
+
+        if (!payment) {
+          throw new AppError(
+            httpStatus.BAD_REQUEST,
+            'Payment record creation failed',
+          );
+        }
+
+        
+
+        const notificationData = {
+          userId: userId,
+          message: 'Order create successfull!!',
+          type: 'success',
+        };
+
+        const notificationData1 = {
+          role: 'admin',
+          message: 'New Order create successfull!!',
+          type: 'success',
+        };
+
+        const [notification, notification1] = await Promise.all([
+          notificationService.createNotification(notificationData),
+          notificationService.createNotification(notificationData1),
+        ]);
+
+        if (!notification || !notification1) {
+          throw new AppError(404, 'Notification create faild!!');
+        }
+
+        // const deletedServiceBookings = await Order.deleteMany(
+        //   {
+        //     userId,
+        //     status: 'pending',
+        //   },
+        //   { session },
+        // );
+        // console.log('deletedServiceBookings', deletedServiceBookings);
+
+        await session.commitTransaction();
+        session.endSession();
+        console.log('Payment completed successfully:', {
+          sessionId,
+          paymentIntentId,
+        });
+
+        break;
+      }
+
+      case 'checkout.session.async_payment_failed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const clientSecret = session.client_secret;
+        const sessionId = session.id;
+
+        if (!clientSecret) {
+          console.warn('Client Secret not found in session.');
+          throw new AppError(httpStatus.BAD_REQUEST, 'Client Secret not found');
+        }
+
+        // const payment = await Payment.findOne({ session_id: sessionId });
+
+        // if (payment) {
+        //   payment.status = 'Failed';
+        //   await payment.save();
+        //   // console.log('Payment marked as failed:', { clientSecret });
+        // } else {
+        //   console.warn(
+        //     'No Payment record found for Client Secret:',
+        //     clientSecret,
+        //   );
+        // }
+
+        break;
+      }
+
+      default:
+        // // console.log(`Unhandled event type: ${event.type}`);
+        // res.status(400).send();
+        return;
+    }
+  } catch (err) {
+    console.error('Error processing webhook event:', err);
+    await session.abortTransaction();
+    session.endSession();
+  }
+};
 
 // const paymentRefundService = async (
 //   amount: number | null,
@@ -616,206 +609,51 @@
 //   return result;
 // };
 
-// const getAllEarningRatio = async (year: number, businessId: string) => {
-//   const startOfYear = new Date(year, 0, 1);
-//   const endOfYear = new Date(year + 1, 0, 1);
+const getAllEarningRatio = async (year: number, businessId: string) => {
+  const startOfYear = new Date(year, 0, 1);
+  const endOfYear = new Date(year + 1, 0, 1);
 
-//   const months = Array.from({ length: 12 }, (_, i) => ({
-//     month: i + 1,
-//     totalIncome: 0,
-//   }));
+  const months = Array.from({ length: 12 }, (_, i) => ({
+    month: i + 1,
+    totalIncome: 0,
+  }));
 
-//   // console.log({ months });
+  // console.log({ months });
 
-//   const incomeData = await ServiceBooking.aggregate([
-//     {
-//       $match: {
-//         status: 'complete',
-//         businessId,
-//         bookingDate: { $gte: startOfYear, $lt: endOfYear },
-//       },
-//     },
-//     {
-//       $group: {
-//         _id: { month: { $month: '$bookingDate' } },
-//         totalIncome: { $sum: '$bookingprice' },
-//       },
-//     },
-//     {
-//       $project: {
-//         month: '$_id.month',
-//         totalIncome: 1,
-//         _id: 0,
-//       },
-//     },
-//     {
-//       $sort: { month: 1 },
-//     },
-//   ]);
+  const incomeData = await Payment.aggregate([
+    {
+      $match: {
+        status: 'complete',
+        transactionDate: { $gte: startOfYear, $lt: endOfYear },
+      },
+    },
+    {
+      $group: {
+        _id: { month: { $month: '$transactionDate' } },
+        totalIncome: { $sum: '$amount' },
+      },
+    },
+    {
+      $project: {
+        month: '$_id.month',
+        totalIncome: 1,
+        _id: 0,
+      },
+    },
+    {
+      $sort: { month: 1 },
+    },
+  ]);
 
-//   incomeData.forEach((data) => {
-//     const monthData = months.find((m) => m.month === data.month);
-//     if (monthData) {
-//       monthData.totalIncome = data.totalIncome;
-//     }
-//   });
+  incomeData.forEach((data) => {
+    const monthData = months.find((m) => m.month === data.month);
+    if (monthData) {
+      monthData.totalIncome = data.totalIncome;
+    }
+  });
 
-//   return months;
-// };
-
-// const filterBalanceByPaymentMethod = async (businessId: string) => {
-//   // Convert businessId to ObjectId
-//   const businessObjectId = new mongoose.Types.ObjectId(businessId);
-
-//   // Aggregate payments
-//   const payment = await ServiceBooking.aggregate([
-//     {
-//       $match: {
-//         status: 'complete',
-//         businessId: businessObjectId,
-//       },
-//     },
-//     {
-//       $group: {
-//         _id: '$status',
-//         totalAmount: { $sum: '$bookingprice' },
-//       },
-//     },
-//     {
-//       $project: {
-//         _id: 0,
-//         totalAmount: 1,
-//       },
-//     },
-//   ]);
-
-//   // // console.log('payment', payment[0] ? payment[0] : totalAmount:0);
-//   if (!payment[0]) {
-//     return { totalAmount: 0 };
-//   }
-
-//   // Ensure `payment` always returns valid data
-//   return payment[0];
-// };
-
-// const filterWithdrawBalanceByPaymentMethod = async (
-//   paymentMethod: string,
-//   businessId: string,
-// ) => {
-//   // console.log('businessId:', businessId);
-//   // console.log('paymentMethod:', paymentMethod);
-
-//   // Convert businessId to ObjectId
-//   const businessObjectId = new mongoose.Types.ObjectId(businessId);
-
-//   // Aggregate payments
-//   const payment = await Payment.aggregate([
-//     {
-//       $match: {
-//         method: paymentMethod,
-//         businessId: businessObjectId,
-//       },
-//     },
-//     {
-//       $group: {
-//         _id: '$method',
-//         totalAmount: { $sum: '$depositAmount' },
-//       },
-//     },
-//     {
-//       $project: {
-//         _id: 0,
-//         method: '$_id',
-//         totalAmount: 1,
-//       },
-//     },
-//   ]);
-
-//   // console.log('payment===', payment);
-
-//   // Aggregate withdrawals
-//   const withdraw = await Withdraw.aggregate([
-//     {
-//       $match: {
-//         method: paymentMethod,
-//         businessId: businessObjectId,
-//       },
-//     },
-//     {
-//       $group: {
-//         _id: '$method',
-//         totalAmount: { $sum: '$amount' },
-//       },
-//     },
-//     {
-//       $project: {
-//         _id: 0,
-//         method: '$_id',
-//         totalAmount: 1,
-//       },
-//     },
-//   ]);
-
-//   // Calculate available balance
-//   const totalDeposits = payment.length > 0 ? payment[0].totalAmount : 0;
-//   const totalWithdrawals = withdraw.length > 0 ? withdraw[0].totalAmount : 0;
-//   const availableBalance = totalDeposits - totalWithdrawals;
-
-//   // Ensure `payment` always returns valid data
-//   return [
-//     {
-//       method: paymentMethod,
-//       totalAmount: availableBalance,
-//     },
-//   ];
-// };
-
-// const availablewithdrawAmount = async (
-//   paymentMethod: string,
-//   businessId: string,
-// ) => {
-//   // console.log('businessId:', businessId);
-//   // console.log('paymentMethod:', paymentMethod);
-
-//   // Convert businessId to ObjectId
-//   const businessObjectId = new mongoose.Types.ObjectId(businessId);
-
-//   // Aggregate payments
-//   const payment = await Payment.aggregate([
-//     {
-//       $match: {
-//         method: paymentMethod,
-//         businessId: businessObjectId,
-//       },
-//     },
-//     {
-//       $group: {
-//         _id: '$method',
-//         totalAmount: { $sum: '$depositAmount' },
-//       },
-//     },
-//     {
-//       $project: {
-//         _id: 0,
-//         method: '$_id',
-//         totalAmount: 1,
-//       },
-//     },
-//   ]);
-
-//   // Aggregate withdrawals
-
-//   // Calculate available balance
-//   const totalDeposits = payment.length > 0 ? payment[0].totalAmount : 0;
-
-//   // Ensure `payment` always returns valid data
-//   return [
-//     {
-//       method: paymentMethod,
-//       totalAmount: totalDeposits,
-//     },
-//   ];
-// };
+  return months;
+};
 
 // const refreshAccountConnect = async (
 //   id: string,
@@ -933,7 +771,7 @@
 //   }
 //   return withdraw;
 // };
-// // 0 0 */7 * *
+// 0 0 */7 * *
 
 // cron.schedule('* * * * *', async () => {
 //   // console.log('Executing transferBalanceService every 7 days...');
@@ -967,21 +805,21 @@
 //   // await transferBalanceService();
 // });
 
-// export const paymentService = {
-//   addPaymentService,
-//   getAllPaymentService,
-//   singlePaymentService,
-//   deleteSinglePaymentService,
-//   getAllPaymentByCustomerService,
-//   getAllIncomeRatio,
-//   getAllIncomeRatiobyDays,
-//   createCheckout,
-//   automaticCompletePayment,
-//   paymentRefundService,
-//   getAllEarningRatio,
-//   filterBalanceByPaymentMethod,
-//   filterWithdrawBalanceByPaymentMethod,
-//   createStripeAccount,
-//   refreshAccountConnect,
-//   transferBalanceService,
-// };
+export const paymentService = {
+  addPaymentService,
+  getAllPaymentService,
+  singlePaymentService,
+  deleteSinglePaymentService,
+  getAllPaymentByCustomerService,
+  getAllIncomeRatio,
+  getAllIncomeRatiobyDays,
+  createCheckout,
+  automaticCompletePayment,
+  getAllEarningRatio,
+  //   paymentRefundService,
+  //   filterBalanceByPaymentMethod,
+  //   filterWithdrawBalanceByPaymentMethod,
+  //   createStripeAccount,
+  //   refreshAccountConnect,
+  //   transferBalanceService,
+};
