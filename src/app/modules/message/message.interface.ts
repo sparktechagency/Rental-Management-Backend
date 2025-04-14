@@ -1,9 +1,16 @@
 import { Types } from 'mongoose';
 
-export interface IMessage {
-  chat: Types.ObjectId; 
-  message?: string; 
-  type: 'general' | 'special' | 'reply';
-  link?: string; 
-  sender: Types.ObjectId; 
+export interface IMessages {
+  _id?: Types.ObjectId;
+  id?: string;
+  text?: string;
+  image?: string;
+  seen: boolean;
+  chat: Types.ObjectId;
+  sender: Types.ObjectId;
+  receiver: Types.ObjectId;
+  taskId?: Types.ObjectId;
+  taskStatus?: string;
+  offerPrice?: number;
+  reason?: string;
 }

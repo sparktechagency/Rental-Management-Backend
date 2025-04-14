@@ -8,10 +8,40 @@ import { chatController } from './chat.controller';
 
 const chatRouter = Router();
 
-chatRouter.get(
+// chatRouter.get(
+//   '/',
+//   auth(USER_ROLE.TASKER, USER_ROLE.POSTER),
+//   chatController.getAllChats,
+// );
+
+chatRouter.post(
   '/',
   auth(USER_ROLE.TENANT, USER_ROLE.LANDLORD),
-  chatController.getAllChats,
+  chatController.createChat,
+);
+
+chatRouter.patch(
+  '/:id',
+  auth(USER_ROLE.TENANT, USER_ROLE.LANDLORD),
+  chatController.updateChat,
+);
+
+chatRouter.delete(
+  '/:id',
+  auth(USER_ROLE.TENANT, USER_ROLE.LANDLORD),
+  chatController.deleteChat,
+);
+
+chatRouter.get(
+  '/my-chat-list',
+  auth(USER_ROLE.TENANT, USER_ROLE.LANDLORD),
+  chatController.getMyChatList,
+);
+
+chatRouter.get(
+  '/:id',
+  auth(USER_ROLE.TENANT, USER_ROLE.LANDLORD),
+  chatController.getChatById,
 );
 
 export default chatRouter;

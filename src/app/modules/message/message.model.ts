@@ -3,23 +3,53 @@ const { Schema, model, models } = mongoose;
 
 const messageSchema = new Schema(
   {
-    chat: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Chat',
-      required: true,
-    },
-    message: { type: String, required: false },
-    type: {
+    text: {
       type: String,
-      enum: ['general', 'special', 'reply'],
-      default: 'general',
+      default: null,
     },
-    link: { type: String, required: false },
+    image: {
+      type: String,
+      default: null,
+    },
+
+    seen: {
+      type: Boolean,
+      default: false,
+    },
     sender: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      type: Schema.Types.ObjectId,
       required: true,
+      ref: 'User',
     },
+    receiver: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: 'User',
+    },
+
+    chat: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: 'Chat',
+    },
+    taskId: {
+      type: Schema.Types.ObjectId,
+      required: false,
+      ref: 'TaskPost',
+    },
+    taskStatus: {
+      type: String,
+      enum: ['pending', 'accept', 'cencel'],
+      required: false,
+    },
+    offerPrice: {
+      type: Number,
+      required: false,
+    },
+    reason:{
+      type: String,
+      required: false
+    }
   },
   {
     timestamps: true,
