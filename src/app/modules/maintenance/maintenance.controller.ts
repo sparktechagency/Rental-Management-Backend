@@ -19,6 +19,8 @@ const createMaintenance = catchAsync(async (req, res) => {
     );
   }
 
+  console.log('maintenanceData=', maintenanceData);
+
   const result =
     await maintenanceService.createMaintenanceService(maintenanceData);
 
@@ -32,11 +34,9 @@ const createMaintenance = catchAsync(async (req, res) => {
 });
 
 const getAllMaintenanceByProperty = catchAsync(async (req, res) => {
-     const propertyId: any = req.query.id;
   const { meta, result } =
     await maintenanceService.getAllMaintenanceByLandlordUserPropertyIdQuery(
       req.query,
-      propertyId,
     );
 
   sendResponse(res, {
@@ -51,12 +51,10 @@ const getAllMaintenanceByProperty = catchAsync(async (req, res) => {
 
 const getAllMaintenanceMessageByTenant = catchAsync(async (req, res) => {
     const {userId} = req.user;
-    const propertyId:any = req.query.id;
 
   const { meta, result } =
     await maintenanceService.getAllMaintenanceByTenantUserIDByPropertyIdQuery(
       req.query,
-      propertyId,
       userId
     );
 

@@ -26,15 +26,15 @@ const createMaintenanceService = async (payload: TMaintenance) => {
 
 const getAllMaintenanceByLandlordUserPropertyIdQuery = async (
   query: Record<string, unknown>,
-  propertyId: string,
 ) => {
-    const property = await Property.findById(propertyId);
+    console.log('query', query);
+    const property = await Property.findById(query.propertyId);
     if (!property) {
       throw new AppError(403, 'Property not found!!');
     }
   const maintenanceQuery = new QueryBuilder(
     Maintenance.find({
-      propertyId,
+    //   propertyId,
       //   isDeleted: false,
     }),
     query,
@@ -52,7 +52,6 @@ const getAllMaintenanceByLandlordUserPropertyIdQuery = async (
 
 const getAllMaintenanceByTenantUserIDByPropertyIdQuery = async (
   query: Record<string, unknown>,
-  propertyId: string,
   tenantUserId: string,
 ) => {
   const tenantUser = await User.findById(tenantUserId);
@@ -60,18 +59,19 @@ const getAllMaintenanceByTenantUserIDByPropertyIdQuery = async (
     throw new AppError(403, 'User not found!!');
   }
 
-  if (tenantUser.role === 'tenant') {
+
+  if (tenantUser.role !== 'tenant') {
     throw new AppError(403, 'You are not tenant user!!');
   }
 
-  const property = await Property.findById(propertyId);
+
+  const property = await Property.findById(query.propertyId);
   if (!property) {
     throw new AppError(403, 'Property not found!!');
   }
 
   const maintenanceQuery = new QueryBuilder(
     Maintenance.find({
-      propertyId,
       tenantUserId,
       //   isDeleted: false,
     }),
@@ -123,6 +123,15 @@ const updateSingleMaintenanceApprovedCancelByLandlordQuery = async (
       throw new AppError(400, 'FeedbackMessage message is Required!!');
     }
   }
+
+ if (maintenance.status === 'cancel') {
+   throw new AppError(400, 'Maintenance message is already canceled!!');
+ }
+ if (maintenance.status === 'solved') {
+   throw new AppError(400, 'Maintenance message is already solved!!');
+ }
+
+
   const updateData: any = {
     status: payload.status,
   };

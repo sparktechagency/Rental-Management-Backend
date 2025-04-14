@@ -17,6 +17,7 @@ import invitePeopleRouter from '../modules/invitePeople/invitePeople.route';
 import agreementRouter from '../modules/agreement/agreement.route';
 import announcementsRouter from '../modules/announcements/announcements.route';
 import maintenanceRouter from '../modules/maintenance/maintenance.route';
+import adminAnnouncementsRouter from '../modules/admin.announcements/admin.announcements.route';
 
 const router = Router();
 
@@ -90,6 +91,10 @@ const moduleRoutes = [
   {
     path: '/maintenance',
     route: maintenanceRouter,
+  },
+  {
+    path: '/admin-announcement',
+    route: adminAnnouncementsRouter,
   },
 ];
 moduleRoutes.forEach((route) => router.use(route.path, route.route));

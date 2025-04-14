@@ -6,7 +6,7 @@ import { maintenanceController } from './maintenance.controller';
 
 const maintenanceRouter = express.Router();
 
-const upload = fileUpload('./public/uploads/agreement');
+const upload = fileUpload('./public/uploads/maintenance');
 
 maintenanceRouter
   .post(
@@ -22,15 +22,15 @@ maintenanceRouter
     maintenanceController.getAllMaintenanceByProperty,
   )
   .get(
-    '/landlord',
-    auth(USER_ROLE.LANDLORD),
-    maintenanceController.getAllMaintenanceByProperty,
+    '/tenant',
+    auth(USER_ROLE.TENANT),
+    maintenanceController.getAllMaintenanceMessageByTenant,
   )
   .get('/:id', maintenanceController.getSingleMaintenance)
 
   .patch(
-    '/extent-request/:id',
-    auth(USER_ROLE.TENANT),
+    '/status/:id',
+    auth(USER_ROLE.LANDLORD),
     maintenanceController.updateSingleMaintenanceIssueSolvedOrCancel,
   )
   .delete(
