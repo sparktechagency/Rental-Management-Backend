@@ -4,14 +4,18 @@ import { TPayment } from './payment.interface';
 
 const paymentSchema = new Schema<TPayment>(
   {
-    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    tenantUserId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     method: {
       type: String,
       enum: ['stripe'],
       required: true,
       default: 'stripe',
     },
-    amount: {
+    rentAmount: {
+      type: Number,
+      required: true,
+    },
+    adminChargeAmount: {
       type: Number,
       required: true,
     },
@@ -23,7 +27,7 @@ const paymentSchema = new Schema<TPayment>(
     transactionId: {
       type: String,
       required: true,
-      unique:true
+      unique: true,
     },
     transactionDate: {
       type: Date,
@@ -33,9 +37,9 @@ const paymentSchema = new Schema<TPayment>(
       type: String,
       default: null,
     },
-    orderId: {
+    invitedPropertyId: {
       type: Schema.Types.ObjectId,
-      ref: 'Order',
+      ref: 'InvitePeople',
       required: true,
     },
   },

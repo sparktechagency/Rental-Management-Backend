@@ -26,11 +26,11 @@ propertyRouter
     auth(USER_ROLE.LANDLORD),
     propertyController.getAllPropertyByLandlord,
   )
-  .get(
-    '/tenant',
-    auth(USER_ROLE.TENANT),
-    propertyController.getAllPropertyByTenant,
-  )
+  // .get(
+  //   '/tenant',
+  //   auth(USER_ROLE.TENANT),
+  //   propertyController.getAllPropertyByTenant,
+  // )
   .get('/:id', propertyController.getSingleProperty)
   .patch(
     '/verify/:id',

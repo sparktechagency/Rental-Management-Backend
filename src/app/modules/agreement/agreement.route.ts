@@ -26,6 +26,10 @@ agreementRouter
     '/invitedPeople/:id',
     agreementController.getSingleAgreementByInvitedPeople,
   )
+  .get(
+    '/invitedPeople/status/:id',
+    agreementController.getSingleAgreementStatusByInvitedPeople,
+  )
   .patch(
     '/extent-request/:id',
     auth(USER_ROLE.TENANT),

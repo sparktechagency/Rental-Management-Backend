@@ -26,6 +26,11 @@ maintenanceRouter
     auth(USER_ROLE.TENANT),
     maintenanceController.getAllMaintenanceMessageByTenant,
   )
+  .get(
+    '/count/tenant',
+    auth(USER_ROLE.TENANT),
+    maintenanceController.getAllMaintenanceMessageCountByTenant,
+  )
   .get('/:id', maintenanceController.getSingleMaintenance)
 
   .patch(

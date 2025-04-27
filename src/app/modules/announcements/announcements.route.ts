@@ -23,3 +23,5 @@ announcementsRouter
   .get('/:id', announcementController.getSingleAnnouncement);
 
 export default announcementsRouter;
+
+

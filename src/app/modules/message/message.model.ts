@@ -27,29 +27,11 @@ const messageSchema = new Schema(
       ref: 'User',
     },
 
-    chat: {
+    chatId: {
       type: Schema.Types.ObjectId,
       required: true,
       ref: 'Chat',
     },
-    taskId: {
-      type: Schema.Types.ObjectId,
-      required: false,
-      ref: 'TaskPost',
-    },
-    taskStatus: {
-      type: String,
-      enum: ['pending', 'accept', 'cencel'],
-      required: false,
-    },
-    offerPrice: {
-      type: Number,
-      required: false,
-    },
-    reason:{
-      type: String,
-      required: false
-    }
   },
   {
     timestamps: true,

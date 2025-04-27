@@ -5,14 +5,14 @@ import sendResponse from '../../utils/sendResponse';
 import Stripe from 'stripe';
 import AppError from '../../error/AppError';
 import config from '../../config';
+import { StripeAccount } from '../stripeAccount/stripeAccount.model';
 // import { StripeAccount } from '../stripeAccount/stripeAccount.model';
 
 
 const addPayment = catchAsync(async (req, res, next) => {
   const { userId } = req.user;
   const orderData = req.body;
-  orderData.userId = userId;
-
+  orderData.tenantUserId = userId;
   const result = await paymentService.addPaymentService(orderData);
 
   if (result) {
@@ -168,52 +168,7 @@ const cancelPage = catchAsync(async (req, res) => {
   res.render('cancel.ejs');
 });
 
-// const successPageAccount = catchAsync(async (req, res) => {
-//   // console.log('payment account hit hoise');
-//   const { id } = req.params;
-//   const account = await stripe.accounts.update(id, {});
-//   // console.log('account', account);
 
-//   if (
-//     account?.requirements?.disabled_reason &&
-//     account?.requirements?.disabled_reason.indexOf('rejected') > -1
-//   ) {
-//     return res.redirect(
-//       `${req.protocol + '://' + req.get('host')}/api/v1/payment/refreshAccountConnect/${id}`,
-//     );
-//   }
-//   if (
-//     account?.requirements?.disabled_reason &&
-//     account?.requirements?.currently_due &&
-//     account?.requirements?.currently_due?.length > 0
-//   ) {
-//     return res.redirect(
-//       `${req.protocol + '://' + req.get('host')}/api/v1/payment/refreshAccountConnect/${id}`,
-//     );
-//   }
-//   if (!account.payouts_enabled) {
-//     return res.redirect(
-//       `${req.protocol + '://' + req.get('host')}/api/v1/payment/refreshAccountConnect/${id}`,
-//     );
-//   }
-//   if (!account.charges_enabled) {
-//     return res.redirect(
-//       `${req.protocol + '://' + req.get('host')}/api/v1/payment/refreshAccountConnect/${id}`,
-//     );
-//   }
-//   // if (account?.requirements?.past_due) {
-//   //     return res.redirect(`${req.protocol + '://' + req.get('host')}/payment/refreshAccountConnect/${id}`);
-//   // }
-//   if (
-//     account?.requirements?.pending_verification &&
-//     account?.requirements?.pending_verification?.length > 0
-//   ) {
-//     // return res.redirect(`${req.protocol + '://' + req.get('host')}/payment/refreshAccountConnect/${id}`);
-//   }
-//   await StripeAccount.updateOne({ accountId: id }, { isCompleted: true });
-
-//   res.render('success-account.ejs');
-// });
 
 //webhook
 
@@ -308,31 +263,77 @@ const getAllEarningRasio = catchAsync(async (req, res) => {
 // });
 
 
+const successPageAccount = catchAsync(async (req, res) => {
+  // console.log('payment account hit hoise');
+  const { id } = req.params;
+  const account = await stripe.accounts.update(id, {});
+  // console.log('account', account);
 
-// const refreshAccountConnect = catchAsync(async (req, res) => {
-//   const { id } = req.params;
-//   const url = await paymentService.refreshAccountConnect(
-//     id,
-//     req.get('host') || '',
-//     req.protocol,
-//   );
-//   res.redirect(url);
-// });
+  if (
+    account?.requirements?.disabled_reason &&
+    account?.requirements?.disabled_reason.indexOf('rejected') > -1
+  ) {
+    return res.redirect(
+      `${req.protocol + '://' + req.get('host')}/api/v1/payment/refreshAccountConnect/${id}`,
+    );
+  }
+  if (
+    account?.requirements?.disabled_reason &&
+    account?.requirements?.currently_due &&
+    account?.requirements?.currently_due?.length > 0
+  ) {
+    return res.redirect(
+      `${req.protocol + '://' + req.get('host')}/api/v1/payment/refreshAccountConnect/${id}`,
+    );
+  }
+  if (!account.payouts_enabled) {
+    return res.redirect(
+      `${req.protocol + '://' + req.get('host')}/api/v1/payment/refreshAccountConnect/${id}`,
+    );
+  }
+  if (!account.charges_enabled) {
+    return res.redirect(
+      `${req.protocol + '://' + req.get('host')}/api/v1/payment/refreshAccountConnect/${id}`,
+    );
+  }
+  // if (account?.requirements?.past_due) {
+  //     return res.redirect(`${req.protocol + '://' + req.get('host')}/payment/refreshAccountConnect/${id}`);
+  // }
+  if (
+    account?.requirements?.pending_verification &&
+    account?.requirements?.pending_verification?.length > 0
+  ) {
+    // return res.redirect(`${req.protocol + '://' + req.get('host')}/payment/refreshAccountConnect/${id}`);
+  }
+  await StripeAccount.updateOne({ accountId: id }, { isCompleted: true });
 
-// const createStripeAccount = catchAsync(async (req, res) => {
-//   const result = await paymentService.createStripeAccount(
-//     req.user,
-//     req.get('host') || '',
-//     req.protocol,
-//   );
+  res.render('success-account.ejs');
+});
 
-//   sendResponse(res, {
-//     statusCode: 200,
-//     success: true,
-//     message: 'Stripe account created',
-//     data: result,
-//   });
-// });
+const refreshAccountConnect = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const url = await paymentService.refreshAccountConnect(
+    id,
+    req.get('host') || '',
+    req.protocol,
+  );
+  res.redirect(url);
+});
+
+const createStripeAccount = catchAsync(async (req, res) => {
+  const result = await paymentService.createStripeAccount(
+    req.user,
+    req.get('host') || '',
+    req.protocol,
+  );
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Stripe account created Successfull!',
+    data: result,
+  });
+});
 
 // const transferBalance = catchAsync(async (req, res) => {
 //   const { accountId, amount } = req.body;
@@ -350,6 +351,18 @@ const getAllEarningRasio = catchAsync(async (req, res) => {
 //   });
 // });
 
+
+const stripeConnectedAccountLogin = catchAsync(async (req, res) => {
+  const {userId} = req.user;
+  const result = await paymentService.stripeConnectedAccountLoginQuery(userId);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Account login successfull!!',
+    data: result,
+  });
+});
+
 export const paymentController = {
   addPayment,
   getAllPayment,
@@ -363,11 +376,12 @@ export const paymentController = {
   successPage,
   cancelPage,
   getAllEarningRasio,
-  //   successPageAccount,
+  successPageAccount,
   //   paymentRefund,
   //   getAllEarningByPaymentMethod,
   //   getAllWithdrawEarningByPaymentMethod,
-  //   createStripeAccount,
-  //   refreshAccountConnect,
+  createStripeAccount,
+  refreshAccountConnect,
   //   transferBalance,
+  stripeConnectedAccountLogin,
 };

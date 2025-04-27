@@ -9,11 +9,16 @@ const paymentRouter = express.Router();
 
 paymentRouter
   .post('/add-payment', auth(USER_ROLE.TENANT), paymentController.addPayment)
-  //   .post(
-  //     '/create-stripe-account',
-  //     auth(USER_ROLE.BUSINESS),
-  //     paymentController.createStripeAccount,
-  //   )
+  .post(
+    '/create-stripe-connected-account',
+    auth(USER_ROLE.LANDLORD),
+    paymentController.createStripeAccount,
+  )
+  .post(
+    '/login-stripe-connected-account',
+    auth(USER_ROLE.LANDLORD),
+    paymentController.stripeConnectedAccountLogin,
+  )
   //   .post(
   //     '/transfer',
   //     auth(USER_ROLE.BUSINESS),
@@ -43,9 +48,9 @@ paymentRouter
     paymentController.getAllEarningRasio,
   )
 
-  //   .get('/refreshAccountConnect/:id', paymentController.refreshAccountConnect)
+  .get('/refreshAccountConnect/:id', paymentController.refreshAccountConnect)
   .get('/:id', paymentController.getSinglePayment)
-  //   .get('/success-account/:id', paymentController.successPageAccount)
+  .get('/success-account/:id', paymentController.successPageAccount)
 
   .delete('/:id', paymentController.deleteSinglePayment);
 

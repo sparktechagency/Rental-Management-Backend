@@ -13,6 +13,7 @@ import { withdrawService } from '../withdraw/withdraw.service';
 import { Withdraw } from '../withdraw/withdraw.model';
 import cron from 'node-cron';
 import { notificationService } from '../notification/notification.service';
+import InvitePeople from '../invitePeople/invitePeople.model';
 
 type SessionData = Stripe.Checkout.Session;
 
@@ -31,14 +32,10 @@ const addPaymentService = async (payload: any) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
-  // console.log('payment data', payload);
-
   try {
-    // console.log('console.log-1');
-    const newPayload: any = {};
     console.log('payload==', payload);
 
-    const user = await User.findById(payload.userId).session(session);
+    const user = await User.findById(payload.tenantUserId).session(session);
     if (!user) {
       throw new AppError(400, 'User is not found!');
     }
@@ -47,24 +44,53 @@ const addPaymentService = async (payload: any) => {
       throw new AppError(400, 'User is not authorized as a User!!');
     }
 
-    newPayload.orderDate = new Date();
+    const invitedPropleProperty = await InvitePeople.findById(
+      payload.invitedPropertyId,
+    ).session(session);
 
-   
+    if (!invitedPropleProperty) {
+      throw new AppError(400, 'InvitedPeople is not found!');
+    }
 
-    // const order = await Order.create([newPayload], { session });
+    const RunninginvitePeople = await InvitePeople.findOne({
+      tenantUserId: payload.tenantUserId,
+      status: 'invited',
+      cancelStatus: { $in: ['cancel_request', 'pending'] },
+    });
 
-    // if (!order[0]) {
-    //   throw new AppError(400, 'Failed to create order!');
-    // }
+    if (!RunninginvitePeople) {
+      throw new AppError(404, 'Running InvitePeople Not Found!!');
+    }
+
+    const landlordUser = await User.findById(
+      invitedPropleProperty.landlordUserId,
+    );
+
+    if (!landlordUser) {
+      throw new AppError(404, 'Landlort user Not Found!!');
+    }
+
+    const stripeAccountCompleted = await StripeAccount.findOne({
+      userId: landlordUser._id,
+    });
+
+    if (!stripeAccountCompleted) {
+      throw new AppError(404, 'Landlort Stripe Account is not found!!');
+    }
+
+    if (!stripeAccountCompleted.isCompleted) {
+      throw new AppError(404, 'Landlort Stripe Account is Completed !!');
+    }
 
     const paymentInfo = {
-      // orderId: order[0]._id,
-      // amount: order[0].totalAmount,
+      invitedPropertyId: payload.invitedPropertyId,
+      rentAmount: payload.rentAmount,
+      connectedAccountId: stripeAccountCompleted.accountId,
     };
 
     // console.log('======stripe payment');
     const checkoutResult: any = await createCheckout(
-      payload.userId,
+      payload.tenantUserId,
       paymentInfo,
     );
 
@@ -188,7 +214,6 @@ const getAllIncomeRatio = async (year: number) => {
 //   } else {
 //     throw new Error("Invalid value for 'days'. Use '7day' or '24hour'.");
 //   }
-
 
 //   const timeSlots =
 //     days === '7day'
@@ -366,10 +391,8 @@ const getAllIncomeRatiobyDays = async (days: string) => {
   return timeSlots;
 };
 
-
-
 const createCheckout = async (userId: any, payload: any) => {
-  console.log('stripe payment', payload);
+  // console.log('stripe payment', payload);
   let session = {} as { id: string };
 
   // const lineItems = products.map((product) => ({
@@ -384,6 +407,7 @@ const createCheckout = async (userId: any, payload: any) => {
   //   quantity: product.quantity,
   // }));
 
+
   const lineItems = [
     {
       price_data: {
@@ -391,13 +415,17 @@ const createCheckout = async (userId: any, payload: any) => {
         product_data: {
           name: 'Amount',
         },
-        unit_amount: payload.amount * 100,
+        unit_amount: payload.rentAmount * 100,
       },
       quantity: 1,
     },
   ];
 
-  console.log('lineItems=', lineItems);
+  // console.log('lineItems=', lineItems);
+
+  // Here we calculate the admin's share (application fee) and the connected account's share
+  const adminFeeAmount = payload.rentAmount * 0.15 * 100; // 15% for admin
+  // const userShareAmount = payload.rentAmount * 0.85 * 100; // 85% for connected user
 
   const sessionData: any = {
     payment_method_types: ['card'],
@@ -406,31 +434,40 @@ const createCheckout = async (userId: any, payload: any) => {
     cancel_url: `http://10.0.70.35:8082/api/v1/payment/cancel`,
     line_items: lineItems,
     metadata: {
-      userId: String(userId), // Convert userId to string
-      orderId: String(payload.orderId),
-      // cartIds: payload.cartIds,
-      // cartIds: JSON.stringify(payload.cartIds),
-      // products: payload,
+      tenantUserId: String(userId),
+      invitedPropertyId: String(payload.invitedPropertyId),
+      connectedAccountId: String(payload.connectedAccountId),
+    },
+    // application_fee_amount: adminFeeAmount,
+    // transfer_data: {
+    //   destination: payload.connectedAccountId,
+    // },
+    payment_intent_data: {
+      application_fee_amount: adminFeeAmount,
+      transfer_data: {
+        destination: payload.connectedAccountId,
+      },
+      on_behalf_of: payload.connectedAccountId,
     },
   };
 
-  console.log('sessionData=', sessionData);
+  // console.log('sessionData=', sessionData);
 
   try {
-    console.log('try session');
+    // console.log('try session');
     session = await stripe.checkout.sessions.create(sessionData);
-    console.log('session==', session);
+    // console.log('session==', session);
 
     // console.log('session', session.id);
   } catch (error) {
-    console.log('Error', error);
+    console.log('Error=', error);
   }
 
-  console.log('try session 22');
+  // console.log('try session 22');
   // // console.log({ session });
   const { id: session_id, url }: any = session || {};
 
-  console.log({ url });
+  // console.log({ url });
   // console.log({ url });
 
   return { url };
@@ -454,8 +491,8 @@ const automaticCompletePayment = async (event: Stripe.Event): Promise<void> => {
           payment_intent: paymentIntentId,
           metadata,
         }: SessionData = sessionData;
-        const orderId = metadata?.orderId as string;
-        const userId = metadata?.userId as string;
+        const invitedPropertyId = metadata?.invitedPropertyId as string;
+        const tenantUserId = metadata?.tenantUserId as string;
         // const cartIds = JSON.parse(metadata?.cartIds as any);
         // console.log('cartIds==', cartIds);
 
@@ -475,32 +512,19 @@ const automaticCompletePayment = async (event: Stripe.Event): Promise<void> => {
           throw new AppError(httpStatus.BAD_REQUEST, 'Payment Not Successful');
         }
 
-      
-        // const order = await Order.findByIdAndUpdate(
-        //   orderId,
-        //   { paymentStatus: 'paid', status: 'completed'},
-        //   { new: true, session },
-        // );
-
-        // if (!order) {
-        //   throw new AppError(httpStatus.BAD_REQUEST, 'Order not found');
-        // }
-
-  
-
         const paymentData: any = {
-          // userId: userId,
-          // amount: order?.totalAmount,
-          // method: 'stripe',
-          // transactionId: paymentIntentId,
-          // orderId: order?._id,
-          // status: 'paid',
-          // session_id: sessionId,
-          // transactionDate: order?.orderDate,
+          tenantUserId: tenantUserId,
+          rentAmount: paymentIntent.amount_received / 100,
+          adminChargeAmount: (paymentIntent.amount_received / 100) * 0.15, // 15% for admin charged amount: paymentIntent.amount_received / 100,
+          method: 'stripe',
+          transactionId: paymentIntentId,
+          invitedPropertyId: invitedPropertyId,
+          status: 'paid',
+          session_id: sessionId,
+          transactionDate: new Date(),
         };
 
         const payment = await Payment.create([paymentData], { session });
-        console.log('===payment', payment);
 
         if (!payment) {
           throw new AppError(
@@ -509,37 +533,59 @@ const automaticCompletePayment = async (event: Stripe.Event): Promise<void> => {
           );
         }
 
-        
-
-        const notificationData = {
-          userId: userId,
-          message: 'Order create successfull!!',
-          type: 'success',
-        };
-
         const notificationData1 = {
           role: 'admin',
-          message: 'New Order create successfull!!',
+          message: 'Payment is successfull!!',
           type: 'success',
         };
 
-        const [notification, notification1] = await Promise.all([
-          notificationService.createNotification(notificationData),
+        const [notification] = await Promise.all([
+          // notificationService.createNotification(notificationData),
           notificationService.createNotification(notificationData1),
         ]);
 
-        if (!notification || !notification1) {
+        if (!notification) {
           throw new AppError(404, 'Notification create faild!!');
         }
 
-        // const deletedServiceBookings = await Order.deleteMany(
-        //   {
-        //     userId,
-        //     status: 'pending',
-        //   },
-        //   { session },
-        // );
-        // console.log('deletedServiceBookings', deletedServiceBookings);
+        const connectedAccountId = metadata?.connectedAccountId as string;
+        const amountToPayout = (paymentIntent.amount_received / 100) * 0.85;
+
+       const externalAccounts = await stripe.accounts.listExternalAccounts(
+         connectedAccountId,
+        //  { object: 'bank_account' },
+       );
+       console.log('External accounts linked:', externalAccounts);
+
+       if (externalAccounts.data.length === 0) {
+         throw new Error('No bank account linked for payouts.');
+       }
+
+       const cardAccount = externalAccounts.data.find(
+         (account) => account.object === 'card',
+       );
+
+        const mainAccount = await stripe.accounts.retrieve();
+
+       if(cardAccount){
+
+        const payout = await stripe.payouts.create(
+          {
+            amount: amountToPayout * 100,
+            currency: 'usd',
+            destination: connectedAccountId,
+          },
+          {
+            stripeAccount: mainAccount.id,
+          },
+        );
+
+        if (!payout) {
+          throw new Error('Payout creation failed');
+        }
+
+      }
+       
 
         await session.commitTransaction();
         session.endSession();
@@ -586,6 +632,23 @@ const automaticCompletePayment = async (event: Stripe.Event): Promise<void> => {
     console.error('Error processing webhook event:', err);
     await session.abortTransaction();
     session.endSession();
+  }
+};
+
+const payoutToConnectedAccount = async (
+  connectedAccountId: string,
+  amount: number,
+) => {
+  try {
+    const payout = await stripe.payouts.create({
+      amount: amount * 100, // Amount in cents (85% of the payment)
+      currency: 'usd',
+      destination: connectedAccountId, // The connected account ID
+    });
+
+    console.log('Payout successful:', payout);
+  } catch (error) {
+    console.error('Error creating payout:', error);
   }
 };
 
@@ -655,82 +718,81 @@ const getAllEarningRatio = async (year: number, businessId: string) => {
   return months;
 };
 
-// const refreshAccountConnect = async (
-//   id: string,
-//   host: string,
-//   protocol: string,
-// ): Promise<string> => {
-//   const onboardingLink = await stripe.accountLinks.create({
-//     account: id,
-//     refresh_url: `${protocol}://${host}/api/v1/payment/refreshAccountConnect/${id}`,
-//     return_url: `${protocol}://${host}/api/v1/payment/success-account/${id}`,
-//     type: 'account_onboarding',
-//   });
-//   return onboardingLink.url;
-// };
+const refreshAccountConnect = async (
+  id: string,
+  host: string,
+  protocol: string,
+): Promise<string> => {
+  const onboardingLink = await stripe.accountLinks.create({
+    account: id,
+    refresh_url: `${protocol}://${host}/api/v1/payment/refreshAccountConnect/${id}`,
+    return_url: `${protocol}://${host}/api/v1/payment/success-account/${id}`,
+    type: 'account_onboarding',
+  });
+  return onboardingLink.url;
+};
 
-// const createStripeAccount = async (
-//   user: any,
-//   host: string,
-//   protocol: string,
-// ): Promise<any> => {
-//   // console.log('user',user);
-//   const existingAccount = await StripeAccount.findOne({
-//     userId: user.userId,
-//   }).select('user accountId isCompleted');
-//   // console.log('existingAccount', existingAccount);
+const createStripeAccount = async (
+  user: any,
+  host: string,
+  protocol: string,
+): Promise<any> => {
+  const existingAccount = await StripeAccount.findOne({
+    userId: user.userId,
+  }).select('user accountId isCompleted');
+  // console.log('existingAccount', existingAccount);
 
-//   if (existingAccount) {
-//     if (existingAccount.isCompleted) {
-//       return {
-//         success: false,
-//         message: 'Account already exists',
-//         data: existingAccount,
-//       };
-//     }
+  if (existingAccount) {
+    if (existingAccount.isCompleted) {
+      return {
+        success: false,
+        message: 'Account already exists',
+        data: existingAccount,
+      };
+    }
 
-//     const onboardingLink = await stripe.accountLinks.create({
-//       account: existingAccount.accountId,
-//       refresh_url: `${protocol}://${host}/api/v1/payment/refreshAccountConnect/${existingAccount.accountId}`,
-//       return_url: `${protocol}://${host}/api/v1/payment/success-account/${existingAccount.accountId}`,
-//       type: 'account_onboarding',
-//     });
-//     // console.log('onboardingLink-1', onboardingLink);
+    const onboardingLink = await stripe.accountLinks.create({
+      account: existingAccount.accountId,
+      refresh_url: `${protocol}://${host}/api/v1/payment/refreshAccountConnect/${existingAccount.accountId}`,
+      return_url: `${protocol}://${host}/api/v1/payment/success-account/${existingAccount.accountId}`,
+      type: 'account_onboarding',
+    });
+    // console.log('onboardingLink-1', onboardingLink);
 
-//     return {
-//       success: true,
-//       message: 'Please complete your account',
-//       url: onboardingLink.url,
-//     };
-//   }
+    return {
+      success: true,
+      message: 'Please complete your account',
+      url: onboardingLink.url,
+    };
+  }
 
-//   const account = await stripe.accounts.create({
-//     type: 'express',
-//     email: user.email,
-//     country: 'US',
-//     capabilities: {
-//       card_payments: { requested: true },
-//       transfers: { requested: true },
-//     },
-//   });
-//   // console.log('stripe account', account);
+  const account = await stripe.accounts.create({
+    type: 'express',
+    email: user.email,
+    country: 'US',
+    capabilities: {
+      card_payments: { requested: true },
+      transfers: { requested: true },
+    },
+  });
+  // console.log('stripe account', account);
 
-//   await StripeAccount.create({ accountId: account.id, userId: user.userId });
+  await StripeAccount.create({ accountId: account.id, userId: user.userId});
 
-//   const onboardingLink = await stripe.accountLinks.create({
-//     account: account.id,
-//     refresh_url: `${protocol}://${host}/api/v1/payment/refreshAccountConnect/${account.id}`,
-//     return_url: `${protocol}://${host}/api/v1/payment/success-account/${account.id}`,
-//     type: 'account_onboarding',
-//   });
-//   // console.log('onboardingLink-2', onboardingLink);
+  const onboardingLink = await stripe.accountLinks.create({
+    account: account.id,
+    refresh_url: `${protocol}://${host}/api/v1/payment/refreshAccountConnect/${account.id}`,
+    return_url: `${protocol}://${host}/api/v1/payment/success-account/${account.id}`,
+    type: 'account_onboarding',
+  });
+  // console.log('onboardingLink-2', onboardingLink);
 
-//   return {
-//     success: true,
-//     message: 'Please complete your account',
-//     url: onboardingLink.url,
-//   };
-// };
+  return {
+    success: true,
+    message: 'Please complete your account',
+    url: onboardingLink.url,
+  };
+};
 
 // const transferBalanceService = async (
 //   accountId: string,
@@ -805,6 +867,36 @@ const getAllEarningRatio = async (year: number, businessId: string) => {
 //   // await transferBalanceService();
 // });
 
+
+
+ // login stripe account
+
+const stripeConnectedAccountLoginQuery = async (landlordUserId: string) => {
+  console.log('completed account hit hoise');
+  const isExistaccount = await StripeAccount.findOne({
+    userId: landlordUserId,
+    isCompleted: true,
+  })
+
+  if (!isExistaccount) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Account Not Found!!');
+  }
+  if (!isExistaccount.isCompleted) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Account Created not Completed');
+  }
+
+  const account = await stripe.accounts.createLoginLink(
+    isExistaccount.accountId,
+  );
+
+  return account;
+};
+
+
+
+
+
+
 export const paymentService = {
   addPaymentService,
   getAllPaymentService,
@@ -819,7 +911,8 @@ export const paymentService = {
   //   paymentRefundService,
   //   filterBalanceByPaymentMethod,
   //   filterWithdrawBalanceByPaymentMethod,
-  //   createStripeAccount,
-  //   refreshAccountConnect,
+  createStripeAccount,
+  refreshAccountConnect,
   //   transferBalanceService,
+  stripeConnectedAccountLoginQuery,
 };

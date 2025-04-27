@@ -92,6 +92,21 @@ const getSingleAgreementByInvitedPeopleQuery = async (id: string) => {
 };
 
 
+const getSingleAgreementStatusByInvitedPeopleQuery = async (id: string) => {
+  const invited = await InvitePeople.findById(id);
+  if (!invited) {
+    throw new AppError(404, 'Invited people is Not Found!!');
+  }
+
+  const agreement = await Agreement.findOne({ invitePeopleId: id });
+
+
+  return agreement
+    ? { status: 'Provided', endDate: agreement.endDate }
+    : { status: 'Not Provided', endDate: null };
+};
+
+
 
 const updateSingleAgreementExtentRequestQuery = async (id: string, payload:any) => {
   if (!id) {
@@ -226,6 +241,7 @@ export const agreementService = {
   getAllAgreementByLandlordUserQuery,
   getSingleAgreementQuery,
   getSingleAgreementByInvitedPeopleQuery,
+  getSingleAgreementStatusByInvitedPeopleQuery,
   updateSingleAgreementExtentRequestQuery,
   updateSingleAgreementExtentRequestApprovedQuery,
   deletedAgreementQuery,

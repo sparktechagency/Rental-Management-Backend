@@ -75,9 +75,25 @@ const getSingleInvitePeople = catchAsync(async (req, res) => {
 });
 
 
+const getRuningInviteTenant = catchAsync(async (req, res) => {
+    const {userId} = req.user;
+  const result =
+    await invitePeopleService.getRuningInviteTenantPropertyDeuQuery(userId);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    data: result,
+    message: 'Single InvitePeople Due successful!!',
+  });
+});
+
+
 const updateSingleInvitePeopleAccept = catchAsync(async (req, res) => {
+  const { userId } = req.user;
   const result = await invitePeopleService.getSingleInvitePeopleAcceptQuery(
     req.params.id,
+    userId
   );
 
   sendResponse(res, {
@@ -90,8 +106,10 @@ const updateSingleInvitePeopleAccept = catchAsync(async (req, res) => {
 
 
 const inviteRequestVerifyByLandlord = catchAsync(async (req, res) => {
+  const { userId } = req.user;
   const result = await invitePeopleService.updateSingleInvitePeopleVerifyQuery(
     req.params.id,
+    userId
   );
 
   sendResponse(res, {
@@ -123,6 +141,7 @@ export const invitePeopleController = {
   createInvitePeople,
   getAllInvitePeopleByLandlord,
   getAllInvitePeopleByTenant,
+  getRuningInviteTenant,
   getSingleInvitePeople,
   updateSingleInvitePeopleAccept,
   inviteRequestVerifyByLandlord,

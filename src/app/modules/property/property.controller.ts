@@ -60,22 +60,22 @@ const getAllPropertyByLandlord = catchAsync(async (req, res) => {
   });
 });
 
-const getAllPropertyByTenant = catchAsync(async (req, res) => {
-  const tenantUserId= req.user.userId;
-  const { meta, result } =
-    await propertyService.getAllPropertyByTenantUserQuery(
-      req.query,
-      tenantUserId,
-    );
+// const getAllPropertyByTenant = catchAsync(async (req, res) => {
+//   const tenantUserId= req.user.userId;
+//   const { meta, result } =
+//     await propertyService.getAllPropertyByTenantUserQuery(
+//       req.query,
+//       tenantUserId,
+//     );
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    meta: meta,
-    data: result,
-    message: ' All Property by Landlord are requered successful!!',
-  });
-});
+//   sendResponse(res, {
+//     success: true,
+//     statusCode: httpStatus.OK,
+//     meta: meta,
+//     data: result,
+//     message: ' All Property by Landlord are requered successful!!',
+//   });
+// });
 
 
 const getAllPropertyByAdmin = catchAsync(async (req, res) => {
@@ -205,7 +205,7 @@ export const propertyController = {
   createProperty,
   getAllPropertyByAdmin,
   getAllPropertyByLandlord,
-  getAllPropertyByTenant,
+  // getAllPropertyByTenant,
   getSingleProperty,
   updateSingleProperty,
   updateSinglePropertyVerify,

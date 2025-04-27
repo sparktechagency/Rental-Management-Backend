@@ -5,10 +5,12 @@ import { User } from '../user/user.models';
 import { TMaintenance } from './maintenance.interface';
 import Property from '../property/property.model';
 import Maintenance from './maintenance.model';
+import InvitePeople from '../invitePeople/invitePeople.model';
+import { sendEmail } from '../../utils/mailSender';
 
 const createMaintenanceService = async (payload: TMaintenance) => {
-  const landlordUser = await User.findById(payload.tenantUserId);
-  if (!landlordUser) {
+  const tenantUser = await User.findById(payload.tenantUserId);
+  if (!tenantUser) {
     throw new AppError(404, 'Tenant User Not Found!!');
   }
   const property = await Property.findById(payload.propertyId);
@@ -16,10 +18,46 @@ const createMaintenanceService = async (payload: TMaintenance) => {
     throw new AppError(404, 'Property is Not Found!!');
   }
 
+  const landlordUser = await User.findById(property.landlordUserId);
+  if (!landlordUser) {
+    throw new AppError(404, 'Landlord User Not Found!!');
+  }
+
   const result = await Maintenance.create(payload);
 
   if (!result) {
     throw new AppError(403, 'Maintenance create is faild!!');
+  }
+  if(result){
+    sendEmail(
+      landlordUser.email,
+      'Property Maintenance Message From Tenant',
+      `<html>  
+  <body>
+    <h2>Dear ${landlordUser.fullName},</h2>
+    
+    <p>We hope this message finds you well. We are reaching out to inform you that there are some maintenance concerns that need your attention regarding the property you are renting out to ${tenantUser.fullName}.</p>
+    
+    <p><strong>Property Name:</strong> ${property.name}</p>
+    <p><strong>Tenant Name:</strong> ${tenantUser.fullName}</p>
+    
+    <p>The tenant has reported the following maintenance issues that need to be addressed as soon as possible:</p>
+    
+    <ul>
+      <li>${payload.message}</li>
+    </ul>
+    
+    <p>We kindly ask that you review these concerns and coordinate with the necessary maintenance personnel to resolve them promptly. If you require any further details, or if you'd like assistance in arranging the repairs, please feel free to reach out to us.</p>
+    
+    <p>Thank you for your attention to this matter. We appreciate your prompt action to ensure the property remains in good condition for your tenants.</p>
+    
+    <p>Best regards,</p>
+    <p><strong>${tenantUser.fullName}</strong></p>
+  </body>
+</html>
+
+          `,
+    );
   }
   return result;
 };
@@ -86,6 +124,64 @@ const getAllMaintenanceByTenantUserIDByPropertyIdQuery = async (
   const result = await maintenanceQuery.modelQuery;
   const meta = await maintenanceQuery.countTotal();
   return { meta, result };
+};
+
+
+
+const getAllMaintenanceCountByTenantUserIDByPropertyIdQuery = async (
+  tenantUserId: string,
+) => {
+    console.log('console-1',tenantUserId)
+  const tenantUser = await User.findById(tenantUserId);
+  if (!tenantUser) {
+    throw new AppError(403, 'User not found!!');
+  }
+ console.log('1213-1');
+  if (tenantUser.role !== 'tenant') {
+    throw new AppError(403, 'You are not tenant user!!');
+  }
+
+  const runninginvitePeople = await InvitePeople.findOne({
+    tenantUserId,
+    status: 'invited',
+    cancelStatus: { $in: ['cancel_request', 'pending'] },
+  });
+
+  if (!runninginvitePeople) {
+    throw new AppError(404, 'Running property  Not Found!!');
+  }
+
+  const property = await Property.findById(runninginvitePeople.propertyId);
+  if (!property) {
+    throw new AppError(403, 'Property not found!!');
+  }
+
+  console.log('console-2');
+  const pendingMaintenance = await Maintenance.countDocuments({
+    tenantUserId,
+    propertyId: runninginvitePeople.propertyId,
+    status: 'pending',
+  });
+  const solvedMaintenance = await Maintenance.countDocuments({
+    tenantUserId,
+    propertyId: runninginvitePeople.propertyId,
+    status: 'solved',
+  });
+  const cancelMaintenance = await Maintenance.countDocuments({
+    tenantUserId,
+    propertyId: runninginvitePeople.propertyId,
+    status: 'cancel',
+  });
+
+  console.log('solvedMaintenance-1', solvedMaintenance);
+  console.log('console-1');
+  return {
+    pending: pendingMaintenance,
+    solved: solvedMaintenance,
+    cancel: cancelMaintenance,
+  };
+
+  
 };
 
 const getSingleMaintenanceQuery = async (id: string) => {
@@ -190,6 +286,7 @@ export const maintenanceService = {
   createMaintenanceService,
   getAllMaintenanceByLandlordUserPropertyIdQuery,
   getAllMaintenanceByTenantUserIDByPropertyIdQuery,
+  getAllMaintenanceCountByTenantUserIDByPropertyIdQuery,
   getSingleMaintenanceQuery,
   updateSingleMaintenanceApprovedCancelByLandlordQuery,
   deletedMaintenanceQuery,

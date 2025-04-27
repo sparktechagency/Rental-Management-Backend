@@ -67,6 +67,22 @@ const getAllMaintenanceMessageByTenant = catchAsync(async (req, res) => {
   });
 });
 
+const getAllMaintenanceMessageCountByTenant = catchAsync(async (req, res) => {
+  const { userId } = req.user;
+
+  const  result  =
+    await maintenanceService.getAllMaintenanceCountByTenantUserIDByPropertyIdQuery(
+      userId,
+    );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    data: result,
+    message: 'All Maintenance requiest count retrived successful!!',
+  });
+});
+
 const getSingleMaintenance = catchAsync(async (req, res) => {
   const result = await maintenanceService.getSingleMaintenanceQuery(
     req.params.id,
@@ -118,6 +134,7 @@ export const maintenanceController = {
   createMaintenance,
   getAllMaintenanceByProperty,
   getAllMaintenanceMessageByTenant,
+  getAllMaintenanceMessageCountByTenant,
   getSingleMaintenance,
   updateSingleMaintenanceIssueSolvedOrCancel,
   deleteSingleMaintenance,

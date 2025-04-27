@@ -24,6 +24,11 @@ invitePeopleRouter
     auth(USER_ROLE.TENANT),
     invitePeopleController.getAllInvitePeopleByTenant,
   )
+  .get(
+    '/running-property',
+    auth(USER_ROLE.TENANT),
+    invitePeopleController.getRuningInviteTenant,
+  )
   .get('/:id', invitePeopleController.getSingleInvitePeople)
   .patch(
     '/accept/:id',

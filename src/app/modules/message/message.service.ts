@@ -6,6 +6,7 @@ import { IMessages } from './message.interface';
 import Chat from '../chat/chat.model';
 import { chatService } from '../chat/chat.service';
 import QueryBuilder from '../../builder/QueryBuilder';
+import { User } from '../user/user.models';
 
 // // Add a new message
 // const addMessage = async (messageBody: any) => {
@@ -107,6 +108,26 @@ import QueryBuilder from '../../builder/QueryBuilder';
 
 const createMessages = async (payload: IMessages) => {
   console.log('payload===', payload);
+
+  const sender = await User.findById(payload.sender);
+
+  if (!sender) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Sender is not found!!');
+  }
+  const receiver = await User.findById(payload.receiver);
+
+  if (!receiver) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Recever is not found!!');
+  }
+
+ if (sender._id.toString() === receiver._id.toString()) {
+   throw new AppError(
+     httpStatus.BAD_REQUEST,
+     'Sender and Receiver cannot be the same person. Please change.',
+   );
+ }
+
+
   const alreadyExists = await Chat.findOne({
     participants: { $all: [payload.sender, payload.receiver] },
   }).populate(['participants']);
@@ -117,10 +138,10 @@ const createMessages = async (payload: IMessages) => {
       participants: [payload.sender, payload.receiver],
     });
     //@ts-ignore
-    payload.chat = chatList?._id;
+    payload.chatId = chatList?._id;
   } else {
     //@ts-ignore
-    payload.chat = alreadyExists?._id;
+    payload.chatId = alreadyExists?._id;
   }
 
 console.log('payload==2', payload);
@@ -132,7 +153,7 @@ console.log('payload==2', payload);
 
   if (io) {
     console.log('socket hit hoise!')
-    const senderMessage = 'new-message::' + result.chat.toString();
+    const senderMessage = 'new-message::' + result.chatId.toString();
     console.log('senderMessage', senderMessage);
 
     io.emit(senderMessage, result);
@@ -159,6 +180,15 @@ console.log('payload==2', payload);
 // Get all messages
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getAllMessages = async (query: Record<string, any>) => {
+  console.log('query===', query);
+
+  const chat = await Chat.findById(query.chatId);
+  console.log('chat', chat);
+
+  if (!chat) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Chat is not found!!');
+  }
+
   const MessageModel = new QueryBuilder(
     Message.find().populate([
       {
@@ -177,11 +207,14 @@ const getAllMessages = async (query: Record<string, any>) => {
     .sort()
     .fields();
 
+    const message = await Message.find({chatId:query.chatId});
+    console.log('message', message);
+
   const data = await MessageModel.modelQuery;
   const meta = await MessageModel.countTotal();
   return {
-    data,
     meta,
+    data,
   };
 };
 
@@ -197,7 +230,7 @@ const updateMessages = async (id: string, payload: Partial<IMessages>) => {
 // Get messages by chat ID
 const getMessagesByChatId = async (chatId: string) => {
   console.log('chatId', chatId);
-  const result = await Message.find({ chat: chatId })
+  const result = await Message.find({ chatId: chatId })
     .populate('taskId')
     .sort({ createdAt: -1 });
   return result;
@@ -247,7 +280,7 @@ const seenMessage = async (userId: string, chatId: string) => {
   const messageIdList = await Message.aggregate([
     {
       $match: {
-        chat: chatIdObj,
+        chatId: chatIdObj,
         seen: false,
         sender: { $ne: userIdObj },
       },

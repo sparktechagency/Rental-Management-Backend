@@ -9,8 +9,6 @@ import paymentRouter from '../modules/payment/payment.route';
 // import walletRouter from '../modules/wallet/wallet.route';
 import withdrawRouter from '../modules/withdraw/withdraw.route';
 import reviewRouter from '../modules/ratings/ratings.route';
-import chatRouter from '../modules/chat/chat.route';
-import messageRouter from '../modules/message/message.route';
 import faqRouter from '../modules/faq/faq.route';
 import propertyRouter from '../modules/property/property.route';
 import invitePeopleRouter from '../modules/invitePeople/invitePeople.route';
@@ -18,6 +16,8 @@ import agreementRouter from '../modules/agreement/agreement.route';
 import announcementsRouter from '../modules/announcements/announcements.route';
 import maintenanceRouter from '../modules/maintenance/maintenance.route';
 import adminAnnouncementsRouter from '../modules/admin.announcements/admin.announcements.route';
+import chatRouter from '../modules/chat/chat.route';
+import messageRouter from '../modules/message/message.route';
 
 const router = Router();
 

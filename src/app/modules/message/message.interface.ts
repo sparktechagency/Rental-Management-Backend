@@ -6,11 +6,7 @@ export interface IMessages {
   text?: string;
   image?: string;
   seen: boolean;
-  chat: Types.ObjectId;
+  chatId: Types.ObjectId;
   sender: Types.ObjectId;
   receiver: Types.ObjectId;
-  taskId?: Types.ObjectId;
-  taskStatus?: string;
-  offerPrice?: number;
-  reason?: string;
 }

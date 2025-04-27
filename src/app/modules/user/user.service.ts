@@ -427,7 +427,7 @@ const getUserById = async (id: string) => {
 };
 
 const getUserByEmail = async (email: string) => {
-  const result = await User.findOne({ email });
+  const result = await User.findOne({ email, isDeleted: false });
 
   return result;
 };
@@ -447,23 +447,26 @@ const deleteMyAccount = async (id: string, payload: DeleteAccountPayload) => {
     throw new AppError(httpStatus.BAD_REQUEST, 'Password does not match');
   }
 
-  // const userDeleted = await User.findByIdAndUpdate(
-  //   id,
-  //   { isDeleted: true },
-  //   { new: true },
-  // );
+  const userDeleted = await User.findByIdAndUpdate(
+    id,
+    { isDeleted: true },
+    { new: true },
+  );
 
-  const userDeleted = await User.findByIdAndDelete(id);
+  const otpUpdate = await Otp.deleteOne({ sentTo: user.email });
 
-  const otpDelete = await Otp.deleteOne({ sentTo: user.email });
+  // const userDeleted = await User.findByIdAndDelete(id);
 
-  if (!otpDelete) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'user Otp deleted failed');
-  }
+  // const otpDelete = await Otp.deleteOne({ sentTo: user.email });
 
-  if (!userDeleted) {
+  // if (!otpDelete) {
+  //   throw new AppError(httpStatus.BAD_REQUEST, 'user Otp deleted failed');
+  // }
+
+  if (!userDeleted || !otpUpdate) {
     throw new AppError(httpStatus.BAD_REQUEST, 'user deleting failed');
   }
+
 
   return userDeleted;
 };
