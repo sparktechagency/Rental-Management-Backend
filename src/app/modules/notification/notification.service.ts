@@ -14,7 +14,39 @@ const getAllNotificationQuery = async (
   query: Record<string, unknown>,
   userId: string,
 ) => {
-  const notificationQuery = new QueryBuilder(Notification.find({ userId }), query)
+  const notificationQuery = new QueryBuilder(
+    Notification.find({ userId}),
+    query,
+  )
+    .search([''])
+    .filter()
+    .sort()
+    .paginate()
+    .fields();
+
+  const result = await notificationQuery.modelQuery;
+
+  console.log('result', result);
+
+  const adminAnnouncement = await Notification.find({ type: 'announcement' });
+
+  console.log('adminAnnouncement', adminAnnouncement);
+
+  const meta = await notificationQuery.countTotal();
+  const newResult = [
+    ...result,
+    ...adminAnnouncement,
+  ]
+  return { meta, result:newResult };
+};
+
+const getAllNotificationByAdminQuery = async (
+  query: Record<string, unknown>,
+) => {
+  const notificationQuery = new QueryBuilder(
+    Notification.find({ role: 'admin' }),
+    query,
+  )
     .search([''])
     .filter()
     .sort()
@@ -25,12 +57,11 @@ const getAllNotificationQuery = async (
   const meta = await notificationQuery.countTotal();
   return { meta, result };
 };
-
-const getAllNotificationByAdminQuery = async (
+const getAllAnnouncementNotificationByAdminQuery = async (
   query: Record<string, unknown>,
 ) => {
   const notificationQuery = new QueryBuilder(
-    Notification.find({ role: 'admin' }),
+    Notification.find({ type: 'announcement' }),
     query,
   )
     .search([''])
@@ -83,10 +114,13 @@ const deleteAdminNotification = async (id: string) => {
   if (!notification) {
     throw new AppError(404, 'Notification is not found!');
   }
+  if (notification.type !== 'announcement') {
+    throw new AppError(404, 'You are not authorized to access this notification!');
+  }
 
   const result = await Notification.findOneAndDelete({
     _id: id,
-    role: 'admin',
+    type: 'announcement',
   });
   if (!result) {
     throw new AppError(500, 'Error deleting SaveStory!');
@@ -99,6 +133,7 @@ export const notificationService = {
   createNotification,
   getAllNotificationQuery,
   getAllNotificationByAdminQuery,
+  getAllAnnouncementNotificationByAdminQuery,
   deleteNotification,
   getSingleNotification,
   deleteAdminNotification,

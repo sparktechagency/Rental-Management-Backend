@@ -10,13 +10,7 @@ const adminAnnouncementsSchema = new Schema<TAdminAnnouncements>(
     description: {
       type: String,
       required: true,
-    },
-    status: {
-      type: String,
-      required: true,
-      enum:['active', 'deActive'],
-      default:"active"
-    },
+    }
   },
   {
     timestamps: true,

@@ -20,7 +20,8 @@ announcementsRouter
     '/:id',
     announcementController.getAllAnnouncementByLandlord,
   )
-  .get('/:id', announcementController.getSingleAnnouncement);
+  .get('/single/:id', announcementController.getSingleAnnouncement)
+  .delete('/:id', auth(USER_ROLE.LANDLORD), announcementController.getSingleAnnouncementDeleted);
 
 export default announcementsRouter;
 

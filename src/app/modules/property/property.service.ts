@@ -17,30 +17,30 @@ const createPropertyService = async (payload: TProperty) => {
     throw new AppError(404, 'Landlord User Not Found!!');
   }
 
-  // const isStripeConnectedAccount = await StripeAccount.findOne({
-  //   userId: payload.landlordUserId,
-  // });
+  const isStripeConnectedAccount = await StripeAccount.findOne({
+    userId: payload.landlordUserId,
+  });
 
-  // if (!isStripeConnectedAccount) {
-  //   throw new AppError(404, 'Stripe Connected Account Not Found!!');
-  // }
+  if (!isStripeConnectedAccount) {
+    throw new AppError(404, 'Stripe Connected Account Not Found!!');
+  }
 
-  // if (isStripeConnectedAccount.isCompleted === false) {
-  //   throw new AppError(
-  //     404,
-  //     'Stripe Connected Account Not Valid or incompleted. Please again create account!!',
-  //   );
-  // }
+  if (isStripeConnectedAccount.isCompleted === false) {
+    throw new AppError(
+      404,
+      'Stripe Connected Account Not Valid or incompleted. Please again create account!!',
+    );
+  }
 
-  // const account = await stripe.accounts.retrieve(
-  //   isStripeConnectedAccount.accountId,
-  // );
-  // if (!account.payouts_enabled) {
-  //   throw new AppError(
-  //     httpStatus.BAD_REQUEST,
-  //     'Payouts are not enabled for this account',
-  //   );
-  // }
+  const account = await stripe.accounts.retrieve(
+    isStripeConnectedAccount.accountId,
+  );
+  if (!account.payouts_enabled) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Payouts are not enabled for this account',
+    );
+  }
 
 
 //  try {
@@ -67,46 +67,50 @@ const createPropertyService = async (payload: TProperty) => {
 //  }
 
 
+console.log('property peyload==', payload)
 
   const result = await Property.create(payload);
 
   if (!result) {
-    throw new AppError(403, 'Property create is faild!!');
-  }
-
-  const imagePaths = payload.images.map((image: string) => `public/${image}`);
-  const filesPaths = payload.propertyFiles.map(
-    (file: string) => `public/${file}`,
-  );
-
-  console.log('imagePaths', imagePaths);
-  console.log('filesPaths', filesPaths);
-
-  try {
-    await Promise.all(
-      imagePaths.map(async (imagePath) => {
-        try {
-          await access(imagePath);
-          await unlink(imagePath);
-        } catch (error: any) {
-          console.error(`Error handling image at ${imagePath}:`, error.message);
-        }
-      }),
+    const imagePaths = payload.images.map((image: string) => `public/${image}`);
+    const filesPaths = payload.propertyFiles.map(
+      (file: string) => `public/${file}`,
     );
 
-    await Promise.all(
-      filesPaths.map(async (filePath) => {
-        try {
-          await access(filePath);
-          await unlink(filePath);
-        } catch (error: any) {
-          console.error(`Error handling file at ${filePath}:`, error.message);
-        }
-      }),
-    );
-  } catch (error: any) {
-    console.error('Error deleting files or images:', error.message);
+    console.log('imagePaths', imagePaths);
+    console.log('filesPaths', filesPaths);
+
+    try {
+      await Promise.all(
+        imagePaths.map(async (imagePath) => {
+          try {
+            await access(imagePath);
+            await unlink(imagePath);
+          } catch (error: any) {
+            console.error(
+              `Error handling image at ${imagePath}:`,
+              error.message,
+            );
+          }
+        }),
+      );
+
+      await Promise.all(
+        filesPaths.map(async (filePath) => {
+          try {
+            await access(filePath);
+            await unlink(filePath);
+          } catch (error: any) {
+            console.error(`Error handling file at ${filePath}:`, error.message);
+          }
+        }),
+      );
+    } catch (error: any) {
+      console.error('Error deleting files or images:', error.message);
+    }
   }
+
+  
 
   return result;
 };
@@ -175,18 +179,19 @@ const getAllPropertyByAdminQuery = async (query: Record<string, unknown>) => {
 
 
 const getSinglePropertyQuery = async (id: string) => {
-  const property = await Property.findById(id);
+  const property = await Property.findById(id).populate('landlordUserId');
   if (!property) {
     throw new AppError(404, 'Property Not Found!!');
   }
-  const result = await Property.aggregate([
-    { $match: { _id: new mongoose.Types.ObjectId(id) } },
-  ]);
-  if (result.length === 0) {
-    throw new AppError(404, 'Property not found!');
-  }
+  // const result = await Property.aggregate([
+  //   { $match: { _id: new mongoose.Types.ObjectId(id) } },
+  // ]);
 
-  return result[0];
+  // if (result.length === 0) {
+  //   throw new AppError(404, 'Property not found!');
+  // }
+
+  return property;
 };
 
 const updatePropertyQuery = async (id: string, payload: Partial<TProperty>) => {

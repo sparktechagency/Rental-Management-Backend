@@ -10,13 +10,6 @@ const createProperty = catchAsync(async (req, res) => {
   const { userId } = req.user;
   // console.log({ userId });
   propertyData.landlordUserId = userId;
-  const isExist = await Property.findOne({
-    name: propertyData.name,
-  });
-  if (isExist) {
-    throw new AppError(400, 'Property is already exist !');
-  }
-  
   const imageFiles = req.files as {
     [fieldname: string]: Express.Multer.File[];
   };

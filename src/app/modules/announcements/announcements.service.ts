@@ -82,8 +82,22 @@ const getSingleAnnouncementQuery = async (id: string) => {
   }
   const result = await Announcement.findById(id);
 
-  if (!Announcement) {
+  return result;
+};
+
+
+const getSingleAnnouncementDeletedQuery = async (
+  id: string,
+  landlordUserId: string,
+) => {
+  const announcement = await Announcement.findOne({ _id: id, landlordUserId });
+  if (!announcement) {
     throw new AppError(404, 'Announcement Not Found!!');
+  }
+  const result = await Announcement.findOneAndDelete({_id:id,landlordUserId});
+
+  if (!result) {
+    throw new AppError(403, 'Announcement Deleted Faild!!');
   }
 
   return result;
@@ -94,5 +108,6 @@ export const announcementService = {
   createAnnouncementService,
   getAllAnnouncementByLandlordUserByPropertyIdQuery,
   getAllAnnouncementByLandlordUserQuery,
-  getSingleAnnouncementQuery
+  getSingleAnnouncementQuery,
+  getSingleAnnouncementDeletedQuery,
 };

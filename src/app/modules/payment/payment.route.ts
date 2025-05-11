@@ -39,6 +39,11 @@ paymentRouter
     // auth(USER_ROLE.ADMIN),
     paymentController.getAllPayment,
   )
+  .get(
+    '/tenant-landlord',
+    auth(USER_ROLE.TENANT, USER_ROLE.LANDLORD),
+    paymentController.getAllPaymentByTenantByLandlord,
+  )
   // .get('/payment-tracking', auth(USER_ROLE.CUSTOMER), paymentController.getAllPaymentByCustomer)
   .get('/all-income-rasio', paymentController.getAllIncomeRasio)
   .get('/all-income-rasio-by-days', paymentController.getAllIncomeRasioBydays)

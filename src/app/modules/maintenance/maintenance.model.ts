@@ -8,6 +8,11 @@ const maintenanceSchema = new Schema<TMaintenance>(
       required: true,
       ref: 'User',
     },
+    landlordUserId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: 'User',
+    },
     propertyId: {
       type: Schema.Types.ObjectId,
       required: true,

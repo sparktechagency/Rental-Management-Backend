@@ -53,6 +53,29 @@ const getAllPayment = catchAsync(async (req, res, next) => {
   }
 });
 
+
+const getAllPaymentByTenantByLandlord = catchAsync(async (req, res, next) => {
+  const { userId } = req.user;  
+  const result = await paymentService.getAllPaymentTenantLandlordService(req.query, userId);
+  // // console.log('result',result)
+
+  if (result) {
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Payment are retrived Successfull!!',
+      data: result,
+    });
+  } else {
+    sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: true,
+      message: 'Data is not found',
+      data: {},
+    });
+  }
+});
+
 const getAllPaymentByCustormer = catchAsync(async (req, res, next) => {
   const { userId } = req.user;
   console.log('customer id', userId); 
@@ -133,6 +156,7 @@ const getAllIncomeRasio = catchAsync(async (req, res) => {
       data: {},
     });
   }
+
 
   const result = await paymentService.getAllIncomeRatio(year);
 
@@ -366,6 +390,7 @@ const stripeConnectedAccountLogin = catchAsync(async (req, res) => {
 export const paymentController = {
   addPayment,
   getAllPayment,
+  getAllPaymentByTenantByLandlord,
   getSinglePayment,
   deleteSinglePayment,
   getAllPaymentByCustormer,

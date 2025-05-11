@@ -45,6 +45,33 @@ const userCreateVarification = catchAsync(async (req, res) => {
 
 // rest >...............
 
+
+const googleLogin = catchAsync(async (req: Request, res: Response) => {
+  const result = await userService.googleLogin(req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Logged in successfully',
+    data: result,
+  });
+});
+
+
+const appleLogin = catchAsync(async (req: Request, res: Response) => {
+  const result = await userService.appleLogin(req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Logged in successfully',
+    data: result,
+  });
+});
+
+
+
+
 const getAllUsers = catchAsync(async (req, res) => {
   const result = await userService.getAllUserQuery(req.query);
 
@@ -54,6 +81,17 @@ const getAllUsers = catchAsync(async (req, res) => {
     meta: result.meta,
     data: result.result,
     message: 'Users All are requered successful!!',
+  });
+});
+
+const getAllLandlordWithProperty = catchAsync(async (req, res) => {
+  const result = await userService.getAllLandlordWithPropertyQuery(req.query);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    data: result,
+    message: 'Users All landlord with property are requered successful!!',
   });
 });
 
@@ -163,12 +201,15 @@ export const userController = {
   createUser,
   userCreateVarification,
   // userSwichRole,
+  googleLogin,
+  appleLogin,
   getUserById,
   getMyProfile,
   updateMyProfile,
   blockedUser,
   deleteMyAccount,
   getAllUsers,
+  getAllLandlordWithProperty,
   getAllTenantUsers,
   getAllUserCount,
   getAllUserRasio,

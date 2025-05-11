@@ -18,17 +18,26 @@ const userSchema = new Schema<TUser>(
     },
     email: {
       type: String,
-      required: true
+      required: true,
     },
     role: {
       type: String,
       enum: Role,
       required: true,
     },
+    type: {
+      type: String,
+      enum: ['regular', 'google', 'apple'],
+      default: 'regular',
+    },
     password: {
       type: String,
-      required: true,
+      required: false,
       select: false,
+    },
+    loginId: {
+      type: String,
+      required: false,
     },
     phone: {
       type: String,
@@ -85,12 +94,18 @@ const userSchema = new Schema<TUser>(
 
 userSchema.pre('save', async function (next) {
   // eslint-disable-next-line @typescript-eslint/no-this-alias
-  const user = this;
-  user.password = await bcrypt.hash(
-    user.password,
-    Number(config.bcrypt_salt_rounds),
-  );
-  next();
+  if (this.password) {
+    try {
+      const user = this;
+      user.password = await bcrypt.hash(
+        user.password,
+        Number(config.bcrypt_salt_rounds), 
+      );
+    } catch (error:any) {
+      next(error); 
+    }
+  }
+  next(); 
 });
 
 // set '' after saving password
@@ -135,7 +150,7 @@ userSchema.statics.isUserActive = async function (email: string) {
     email: email,
     isDeleted: false,
     isActive: true,
-  }).select('+password');
+  }).select('+password image fullName email role');
 };
 
 userSchema.statics.IsUserExistById = async function (id: string) {

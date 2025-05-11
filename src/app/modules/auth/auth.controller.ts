@@ -30,6 +30,7 @@ const login = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+
 // change password
 const changePassword = catchAsync(async (req: Request, res: Response) => {
   const { userId } = req?.user;

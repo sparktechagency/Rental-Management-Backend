@@ -193,11 +193,11 @@ const getAllMessages = async (query: Record<string, any>) => {
     Message.find().populate([
       {
         path: 'sender',
-        select: 'name email image role _id phoneNumber ',
+        select: 'name email image role _id phone ',
       },
       {
         path: 'receiver',
-        select: 'name email image role _id phoneNumber ',
+        select: 'name email image role _id phone ',
       },
     ]),
     query,

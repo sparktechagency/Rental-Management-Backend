@@ -23,6 +23,11 @@ notificationRoutes.get(
   auth(USER_ROLE.ADMIN),
   NotificationController.getAllNotificationByAdmin,
 );
+notificationRoutes.get(
+  '/admin-all-announcement',
+  // auth(USER_ROLE.ADMIN),
+  NotificationController.getAllAnnouncementNotificationByAdmin,
+);
 notificationRoutes.get('/:id', NotificationController.getSingleNotification);
 notificationRoutes.delete(
   '/:id',
@@ -30,7 +35,7 @@ notificationRoutes.delete(
   NotificationController.deletedNotification,
 );
 notificationRoutes.delete(
-  '/admin/:id',
+  '/admin-announcement/:id',
   auth(USER_ROLE.ADMIN),
   NotificationController.deletedAdminNotification,
 );

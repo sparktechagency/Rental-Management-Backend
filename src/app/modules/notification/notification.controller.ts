@@ -52,6 +52,22 @@ const getAllNotificationByAdmin = catchAsync(async (req, res) => {
   });
 });
 
+
+const getAllAnnouncementNotificationByAdmin = catchAsync(async (req, res) => {
+  const result =
+    await notificationService.getAllAnnouncementNotificationByAdminQuery(
+      req.query,
+    );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    meta: result.meta,
+    data: result.result,
+    message: 'Notification All are requered successful!!',
+  });
+});
+
 const getSingleNotification = catchAsync(
   async (req: Request, res: Response) => {
     const result = await notificationService.getSingleNotification(
@@ -101,6 +117,7 @@ export const NotificationController = {
   createNotification,
   getAllNotificationByUser,
   getAllNotificationByAdmin,
+  getAllAnnouncementNotificationByAdmin,
   getSingleNotification,
   deletedNotification,
   deletedAdminNotification,

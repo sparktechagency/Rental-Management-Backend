@@ -34,9 +34,10 @@ const createMaintenance = catchAsync(async (req, res) => {
 });
 
 const getAllMaintenanceByProperty = catchAsync(async (req, res) => {
+  const { userId } = req.user;
   const { meta, result } =
     await maintenanceService.getAllMaintenanceByLandlordUserPropertyIdQuery(
-      req.query,
+      req.query,userId
     );
 
   sendResponse(res, {

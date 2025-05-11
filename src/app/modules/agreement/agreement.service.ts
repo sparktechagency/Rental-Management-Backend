@@ -83,7 +83,7 @@ const getSingleAgreementByInvitedPeopleQuery = async (id: string) => {
     throw new AppError(404, 'Invited people is Not Found!!');
   }
 
-  const agreement = await Agreement.findOne({ invitePeopleId :id});
+  const agreement = await Agreement.findOne({ invitePeopleId :id}).populate('invitePeopleId').populate('landlordUserId');
    if (!agreement) {
      throw new AppError(404, 'Agreement Not Found!!');
    }

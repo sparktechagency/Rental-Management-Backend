@@ -7,18 +7,21 @@ import Property from '../property/property.model';
 import Maintenance from './maintenance.model';
 import InvitePeople from '../invitePeople/invitePeople.model';
 import { sendEmail } from '../../utils/mailSender';
+import Agreement from '../agreement/agreement.model';
 
 const createMaintenanceService = async (payload: TMaintenance) => {
   const tenantUser = await User.findById(payload.tenantUserId);
   if (!tenantUser) {
     throw new AppError(404, 'Tenant User Not Found!!');
   }
+
   const property = await Property.findById(payload.propertyId);
   if (!property) {
     throw new AppError(404, 'Property is Not Found!!');
   }
+  payload.landlordUserId = property.landlordUserId;
 
-  const landlordUser = await User.findById(property.landlordUserId);
+  const landlordUser = await User.findById(payload.landlordUserId);
   if (!landlordUser) {
     throw new AppError(404, 'Landlord User Not Found!!');
   }
@@ -28,7 +31,7 @@ const createMaintenanceService = async (payload: TMaintenance) => {
   if (!result) {
     throw new AppError(403, 'Maintenance create is faild!!');
   }
-  if(result){
+  if (result) {
     sendEmail(
       landlordUser.email,
       'Property Maintenance Message From Tenant',
@@ -63,18 +66,15 @@ const createMaintenanceService = async (payload: TMaintenance) => {
 };
 
 const getAllMaintenanceByLandlordUserPropertyIdQuery = async (
-  query: Record<string, unknown>,
+  query: Record<string, unknown>, userId: string
 ) => {
-    console.log('query', query);
-    const property = await Property.findById(query.propertyId);
-    if (!property) {
-      throw new AppError(403, 'Property not found!!');
-    }
+ 
   const maintenanceQuery = new QueryBuilder(
     Maintenance.find({
-    //   propertyId,
+      //   propertyId,
       //   isDeleted: false,
-    }),
+      landlordUserId: userId
+    }).populate('tenantUserId').populate('landlordUserId').populate('propertyId'),
     query,
   )
     .search([''])
@@ -97,11 +97,9 @@ const getAllMaintenanceByTenantUserIDByPropertyIdQuery = async (
     throw new AppError(403, 'User not found!!');
   }
 
-
   if (tenantUser.role !== 'tenant') {
     throw new AppError(403, 'You are not tenant user!!');
   }
-
 
   const property = await Property.findById(query.propertyId);
   if (!property) {
@@ -111,8 +109,9 @@ const getAllMaintenanceByTenantUserIDByPropertyIdQuery = async (
   const maintenanceQuery = new QueryBuilder(
     Maintenance.find({
       tenantUserId,
+      propertyId: property._id,
       //   isDeleted: false,
-    }),
+    }).populate('tenantUserId').populate('landlordUserId').populate('propertyId'),
     query,
   )
     .search([''])
@@ -126,17 +125,15 @@ const getAllMaintenanceByTenantUserIDByPropertyIdQuery = async (
   return { meta, result };
 };
 
-
-
 const getAllMaintenanceCountByTenantUserIDByPropertyIdQuery = async (
   tenantUserId: string,
 ) => {
-    console.log('console-1',tenantUserId)
+  console.log('console-1', tenantUserId);
   const tenantUser = await User.findById(tenantUserId);
   if (!tenantUser) {
     throw new AppError(403, 'User not found!!');
   }
- console.log('1213-1');
+  console.log('1213-1');
   if (tenantUser.role !== 'tenant') {
     throw new AppError(403, 'You are not tenant user!!');
   }
@@ -173,15 +170,26 @@ const getAllMaintenanceCountByTenantUserIDByPropertyIdQuery = async (
     status: 'cancel',
   });
 
+  const agreement = await Agreement.findOne({
+    invitePeopleId: runninginvitePeople._id,
+  });
+
+  if (!agreement) {
+    throw new AppError(404, 'Agreement Not Found!!');
+  }
+
   console.log('solvedMaintenance-1', solvedMaintenance);
   console.log('console-1');
   return {
-    pending: pendingMaintenance,
-    solved: solvedMaintenance,
-    cancel: cancelMaintenance,
+    maintenance: {
+      pending: pendingMaintenance,
+      solved: solvedMaintenance,
+      cancel: cancelMaintenance,
+    },
+    agreement: agreement
+      ? { status: 'Provided', endDate: agreement.endDate }
+      : { status: 'Not Provided', endDate: null },
   };
-
-  
 };
 
 const getSingleMaintenanceQuery = async (id: string) => {
@@ -189,7 +197,10 @@ const getSingleMaintenanceQuery = async (id: string) => {
   if (!maintenance) {
     throw new AppError(404, 'Maintenance Not Found!!');
   }
-  const result = await Maintenance.findById(id);
+  const result = await Maintenance.findById(id)
+    .populate('tenantUserId')
+    .populate('landlordUserId')
+    .populate('propertyId');
 
   if (!maintenance) {
     throw new AppError(404, 'Maintenance Not Found!!');
@@ -210,9 +221,21 @@ const updateSingleMaintenanceApprovedCancelByLandlordQuery = async (
   if (!maintenance) {
     throw new AppError(400, 'Maintenance message is not found!!');
   }
+  const tenantUser = await User.findById(maintenance.tenantUserId);
+  if (!tenantUser) {
+    throw new AppError(404, 'Tenant User Not Found!!');
+  }
+
+  const property = await Property.findById(maintenance.propertyId);
+  if (!property) {
+    throw new AppError(404, 'Property is Not Found!!');
+  }
 
   if (payload.status !== 'cancel' && payload.status !== 'solved') {
     throw new AppError(400, 'Status is invalid, you send (cancel or solved)!!');
+  }
+  if (payload.status === 'solved' && payload.feedbackMessage) {
+    throw new AppError(400, 'FeedbackMessage message is not Required!!');
   }
   if (payload.status === 'cancel') {
     if (!payload.feedbackMessage) {
@@ -220,13 +243,12 @@ const updateSingleMaintenanceApprovedCancelByLandlordQuery = async (
     }
   }
 
- if (maintenance.status === 'cancel') {
-   throw new AppError(400, 'Maintenance message is already canceled!!');
- }
- if (maintenance.status === 'solved') {
-   throw new AppError(400, 'Maintenance message is already solved!!');
- }
-
+  if (maintenance.status === 'cancel') {
+    throw new AppError(400, 'Maintenance message is already canceled!!');
+  }
+  if (maintenance.status === 'solved') {
+    throw new AppError(400, 'Maintenance message is already solved!!');
+  }
 
   const updateData: any = {
     status: payload.status,
@@ -242,6 +264,66 @@ const updateSingleMaintenanceApprovedCancelByLandlordQuery = async (
 
   if (!result) {
     throw new AppError(403, 'Maintenance Message requiest faild!');
+  }
+
+  if (result.status === 'solved') {
+    sendEmail(
+      tenantUser.email,
+      'Property Maintenance Message From Landlord',
+      `<html>  
+  <body>
+    <h2>Dear ${tenantUser.fullName},</h2> 
+    
+    <p>We hope you're doing well. We are pleased to inform you that the maintenance issue you reported has been successfully addressed and resolved.</p>
+    
+    <p><strong>Property Name:</strong> ${property.name}</p>
+    <p><strong>Tenant Name:</strong> ${tenantUser.fullName}</p>
+    
+    <p>The maintenance concern you raised has now been solved and the necessary repairs have been completed:</p>
+    
+    <ul>
+      <li>${payload.message}</li>
+    </ul>
+    
+    <p>We appreciate your patience throughout this process, and we trust that everything is now in good condition. Should you experience any further issues, please don't hesitate to let us know.</p>
+    
+    <p>Thank you for your cooperation!</p>
+    
+    <p>Best regards,</p>
+    <p><strong>The Landlord Team</strong></p>
+  </body>
+</html>
+`,
+    );
+  } else if (result.status === 'cancel') {
+    sendEmail(
+      tenantUser.email,
+      'Property Maintenance Message From Landlord',
+      `<html>  
+  <body>
+    <h2>Dear ${tenantUser.fullName},</h2> 
+    
+    <p>We hope you're doing well. We regret to inform you that the maintenance request you submitted has been cancelled.</p>
+    
+    <p><strong>Property Name:</strong> ${property.name}</p>
+    <p><strong>Tenant Name:</strong> ${tenantUser.fullName}</p>
+    
+    <p>Unfortunately, the landlord is unable to proceed with the maintenance request at this time. Here is the feedback from the landlord regarding the cancellation:</p>
+    
+    <ul>
+      <li><strong>Feedback:</strong> ${result.feedbackMessage}</li>
+    </ul>
+    
+    <p>If you have any further questions or concerns, or if you would like to discuss the matter further, please feel free to reach out to us.</p>
+    
+    <p>We appreciate your understanding and cooperation.</p>
+    
+    <p>Best regards,</p>
+    <p><strong>The Landlord Team</strong></p>
+  </body>
+</html>
+`,
+    );
   }
 
   return result;

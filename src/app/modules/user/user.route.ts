@@ -22,6 +22,9 @@ userRoutes
     validateRequest(resentOtpValidations.verifyOtpZodSchema),
     userController.userCreateVarification,
   )
+
+  .post('/google-login', userController.googleLogin)
+  .post('/apple-login', userController.appleLogin)
   // .post(
   //   '/swich-role',
   //   auth(USER_ROLE.CUSTOMER, USER_ROLE.BUSINESS),
@@ -39,6 +42,7 @@ userRoutes
     userController.getMyProfile,
   )
   .get('/all-users', userController.getAllUsers)
+  .get('/all-landlord-with-property', userController.getAllLandlordWithProperty)
   .get('/all-tenant-user', userController.getAllTenantUsers)
   .get('/all-users-count', userController.getAllUserCount)
   .get('/all-users-rasio', userController.getAllUserRasio)
@@ -57,6 +61,11 @@ userRoutes
     parseData(),
     userController.updateMyProfile,
   )
+  .patch(
+    '/blocked/:id',
+    auth(USER_ROLE.ADMIN, USER_ROLE.SUB_ADMIN, USER_ROLE.SUPER_ADMIN),
+    userController.blockedUser,
+  )
   .delete(
     '/delete-my-account',
     auth(
@@ -67,11 +76,6 @@ userRoutes
       USER_ROLE.SUPER_ADMIN,
     ),
     userController.deleteMyAccount,
-  )
-  .delete(
-    '/:id',
-    auth(USER_ROLE.ADMIN, USER_ROLE.SUB_ADMIN, USER_ROLE.SUPER_ADMIN),
-    userController.blockedUser,
   );
 
 // export default userRoutes;
