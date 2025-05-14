@@ -57,15 +57,15 @@ const updateActiveDeActiveAdminAnnouncementQuery = async (id: string) => {
     throw new AppError(404, 'Admin Announcement Not Found!!');
   }
 
-  const result = await AdminAnnouncement.findByIdAndUpdate(id, {
-    status: adminannouncement.status === 'active' ? 'deActive' : 'active',
-  },{new:true});
+  // const result = await AdminAnnouncement.findByIdAndUpdate(id, {
+  //   status: adminannouncement.status === 'active' ? 'deActive' : 'active',
+  // },{new:true});
 
-  if (!result) {
-    throw new AppError(404, 'Admin Announcement updated faild!!');
-  }
+  // if (!result) {
+  //   throw new AppError(404, 'Admin Announcement updated faild!!');
+  // }
 
-  return result;
+  return 'result';
 };
 
 export const adminannouncementService = {

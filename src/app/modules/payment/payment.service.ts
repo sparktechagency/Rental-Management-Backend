@@ -81,7 +81,7 @@ const addPaymentService = async (payload: any) => {
     }
 
     if (!stripeAccountCompleted.isCompleted) {
-      throw new AppError(404, 'Landlort Stripe Account is Completed !!');
+      throw new AppError(404, 'Landlort Stripe Account is not Completed !!');
     }
 
     const paymentInfo = {

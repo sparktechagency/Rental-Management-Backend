@@ -101,7 +101,6 @@ import { User } from '../user/user.models';
 //   return result;
 // };
 
-
 //------------------------------------------------------//
 
 //------------------------------------------------------//
@@ -120,13 +119,12 @@ const createMessages = async (payload: IMessages) => {
     throw new AppError(httpStatus.BAD_REQUEST, 'Recever is not found!!');
   }
 
- if (sender._id.toString() === receiver._id.toString()) {
-   throw new AppError(
-     httpStatus.BAD_REQUEST,
-     'Sender and Receiver cannot be the same person. Please change.',
-   );
- }
-
+  if (sender._id.toString() === receiver._id.toString()) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Sender and Receiver cannot be the same person. Please change.',
+    );
+  }
 
   const alreadyExists = await Chat.findOne({
     participants: { $all: [payload.sender, payload.receiver] },
@@ -144,7 +142,7 @@ const createMessages = async (payload: IMessages) => {
     payload.chatId = alreadyExists?._id;
   }
 
-console.log('payload==2', payload);
+  console.log('payload==2', payload);
   const result = await Message.create(payload);
   console.log('result', result);
   if (!result) {
@@ -152,13 +150,12 @@ console.log('payload==2', payload);
   }
 
   if (io) {
-    console.log('socket hit hoise!')
+    console.log('socket hit hoise!');
     const senderMessage = 'new-message::' + result.chatId.toString();
     console.log('senderMessage', senderMessage);
 
     io.emit(senderMessage, result);
 
-   
     const ChatListSender = await chatService.getMyChatList(
       result?.sender.toString(),
     );
@@ -207,8 +204,10 @@ const getAllMessages = async (query: Record<string, any>) => {
     .sort()
     .fields();
 
-    const message = await Message.find({chatId:query.chatId});
-    console.log('message', message);
+  const message = await Message.find({ chatId: query.chatId });
+  console.log('message', message);
+  // const getAllMessages = 'all-message::' + chat._id.toString();
+  // io.emit(getAllMessages, message);
 
   const data = await MessageModel.modelQuery;
   const meta = await MessageModel.countTotal();
@@ -291,7 +290,7 @@ const seenMessage = async (userId: string, chatId: string) => {
   console.log('messageIdList', messageIdList);
   const unseenMessageIdList =
     messageIdList.length > 0 ? messageIdList[0].ids : [];
-console.log('unseenMessageIdList', unseenMessageIdList);
+  console.log('unseenMessageIdList', unseenMessageIdList);
   const updateMessages = await Message.updateMany(
     { _id: { $in: unseenMessageIdList } },
     { $set: { seen: true } },

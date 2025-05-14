@@ -241,14 +241,14 @@ const getMyChatList = async (userId: string) => {
 
     // Find the latest message in the chat
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const message: any = await Message.findOne({ chat: chatId }).sort({
+    const message: any = await Message.findOne({ chatId: chatId }).sort({
       updatedAt: -1,
     });
 
     console.log('message', message);
 
     const unreadMessageCount = await Message.countDocuments({
-      chat: chatId,
+      chatId: chatId,
       seen: false,
       sender: { $ne: userId },
     });
