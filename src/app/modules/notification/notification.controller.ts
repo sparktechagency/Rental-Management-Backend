@@ -83,6 +83,37 @@ const getSingleNotification = catchAsync(
   },
 );
 
+const getSingleReadNotification = catchAsync(
+  async (req: Request, res: Response) => {
+    const { userId } = req.user;
+    const result = await notificationService.getSingleReadNotification(
+      req.params.id,
+      userId,
+    );
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      data: result,
+      message: 'Single notification read get successful',
+    });
+  },
+);
+
+const getAllReadNotification = catchAsync(
+  async (req: Request, res: Response) => {
+    const { userId } = req.user;
+    const result = await notificationService.getAllReadNotification(userId);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      data: result,
+      message: 'Single notification read get successful',
+    });
+  },
+);
+
 const deletedNotification = catchAsync(async (req: Request, res: Response) => {
   const { userId } = req.user;
   const result = await notificationService.deleteNotification(
@@ -119,6 +150,8 @@ export const NotificationController = {
   getAllNotificationByAdmin,
   getAllAnnouncementNotificationByAdmin,
   getSingleNotification,
+  getAllReadNotification,
+  getSingleReadNotification,
   deletedNotification,
   deletedAdminNotification,
 };

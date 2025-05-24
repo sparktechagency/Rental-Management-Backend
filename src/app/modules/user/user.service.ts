@@ -35,8 +35,8 @@ const createUserToken = async (payload: TUserCreate) => {
     throw new AppError(httpStatus.BAD_REQUEST, 'User data is not valid !!');
   }
 
-  if(!payload.password || !payload.email){
-    throw new AppError(httpStatus.BAD_REQUEST, 'password and email is required !!');
+  if(!payload.password || !payload.email || !payload.fullName){
+    throw new AppError(httpStatus.BAD_REQUEST, 'password and email and fullName is required !!');
   }
 
   // user exist check
@@ -172,25 +172,31 @@ const otpVerifyAndCreateUser = async ({
     throw new AppError(httpStatus.BAD_REQUEST, 'User creation failed');
   }
 
-  // const jwtPayload: {
-  //   userId: string;
-  //   role: string;
-  //   fullName: string;
-  //   email: string;
-  // } = {
-  //   fullName: user?.fullName,
-  //   email: user.email,
-  //   userId: user?._id?.toString() as string,
-  //   role: user?.role,
-  // };
+  const jwtPayload: {
+    userId: string;
+    role: string;
+    fullName: string;
+    email: string;
+  } = {
+    fullName: user?.fullName,
+    email: user.email,
+    userId: user?._id?.toString() as string,
+    role: user?.role,
+  };
 
-  // const userToken = createToken({
-  //   payload: jwtPayload,
-  //   access_secret: config.jwt_access_secret as string,
-  //   expity_time: config.jwt_access_expires_in as string | number,
-  // });
+  const userToken = createToken({
+    payload: jwtPayload,
+    access_secret: config.jwt_access_secret as string,
+    expity_time: config.jwt_access_expires_in as string | number,
+  });
 
-  return user;
+   const refreshToken = createToken({
+      payload: jwtPayload,
+      access_secret: config.jwt_refresh_secret as string,
+      expity_time: config.jwt_refresh_expires_in as string,
+    });
+
+  return {user, userToken, refreshToken};
 };
 
 

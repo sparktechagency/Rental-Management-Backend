@@ -64,6 +64,12 @@ const login = async (payload: TLogin) => {
     expity_time: config.jwt_refresh_expires_in as string,
   });
 
+  // const notificationData = {
+  //   userId: user?._id?.toString() as string,
+  //   type: 'success',
+  //   message: 'Login successfully',
+  // };
+  // await notificationService.createNotification(notificationData);
 
 
   return {

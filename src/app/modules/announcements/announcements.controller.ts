@@ -39,7 +39,7 @@ const getAllAnnouncementByLandlordByall = catchAsync(async (req, res) => {
 });
 
 const getAllAnnouncementByLandlord = catchAsync(async (req, res) => {
-  const propertyId = req.params.id
+  const propertyId = req.query.propertyId as string;
   const { meta, result } =
     await announcementService.getAllAnnouncementByLandlordUserByPropertyIdQuery(
       req.query,

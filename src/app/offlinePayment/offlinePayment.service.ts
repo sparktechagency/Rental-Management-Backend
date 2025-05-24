@@ -234,6 +234,7 @@ const singleOfflinePaymentAcceptQuery = async (
       invitedPropertyId: runninginvitePeople._id,
       status: 'paid',
     };
+    console.log('paymentData', paymentData);
 
     const payment = await Payment.create([paymentData], { session });
 
@@ -252,8 +253,9 @@ const singleOfflinePaymentAcceptQuery = async (
       tenantUserId: offlinePayment.tenantUserId,
       landlordUserId: offlinePayment.landlordUserId,
       propertyId: offlinePayment.propertyId,
-      amount: dueAmount,
+      amount: dueAmount.deu,
     };
+    console.log('dueAmountCreateData', dueAmountCreateData);
     const dueAmountCreate = await duePaymentService.createDuePaymentService(
       dueAmountCreateData,
        session ,

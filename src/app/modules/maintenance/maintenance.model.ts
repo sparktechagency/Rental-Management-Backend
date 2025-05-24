@@ -39,7 +39,7 @@ const maintenanceSchema = new Schema<TMaintenance>(
     status: {
       type: String,
       required: true,
-      enum: ['pending', 'solved', 'cancel'],
+      enum: ['pending', 'resolved', 'cancel'],
       default: 'pending',
     },
   },

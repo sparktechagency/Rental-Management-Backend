@@ -146,15 +146,17 @@ const getSingleInvitePeopleByPropertyIdQuery = async (id: string) => {
   if (!property) {
     throw new AppError(404, 'Property is Not Found!!');
   }
-  const result = await InvitePeople.findOne({ propertyId: id , status: 'invited', cancelStatus: { $in: ['cancel_request', 'pending'] } }).populate('tenantUserId').populate('landlordUserId').populate('propertyId');
+  const result = await InvitePeople.findOne({ propertyId: id  }).populate('tenantUserId').populate('landlordUserId').populate('propertyId');
 
     console.log('result', result);
 
   if (!result) {
-    throw new AppError(404, 'Faild to get invitePeople!!');
+ 
+    return "Invited people not available!!";
+  }else{
+    return result;
   }
 
-  return result;
 };
 
 
@@ -173,12 +175,8 @@ const getCurrentInvitedTenant = async (tenantUserId: string) => {
 
   // console.log('result', result);
 
-   if (!result) {
-    throw new AppError(404, 'Faild to get current invitePeople!!');
-  }
-
-
-  const agreement = await Agreement.findOne({ invitePeopleId: result._id });
+   if (result) {
+    const agreement = await Agreement.findOne({ invitePeopleId: result._id });
 
     const newResult = {
       ...result.toObject(),
@@ -187,9 +185,13 @@ const getCurrentInvitedTenant = async (tenantUserId: string) => {
 
     console.log('bala', newResult);
 
- 
+    return newResult;
+  }else{
+    return {};
+  }
 
-  return newResult;
+
+ 
 };
 
 // const getRuningInviteTenantPropertyDeuQuery = async (tenantUserId: string, session?: any) => {
@@ -268,6 +270,7 @@ const getCurrentInvitedTenant = async (tenantUserId: string) => {
 // };
 
 
+
 const getRuningInviteTenantPropertyDeuQuery = async (
   tenantUserId: string,
   session?: any,
@@ -279,117 +282,123 @@ const getRuningInviteTenantPropertyDeuQuery = async (
   try {
     if (!session) await mongoSession.startTransaction();
 
-    const invitePeople = await InvitePeople.findOne({ tenantUserId }).session(
-      mongoSession,
-    );
-    if (!invitePeople) {
-      throw new AppError(404, 'InvitePeople Not Found!!');
-    }
+    // const invitePeople = await InvitePeople.findOne({ tenantUserId }).session(
+    //   mongoSession,
+    // );
+    // if (!invitePeople) {
+    //   throw new AppError(404, 'InvitePeople Not Found!!');
+    // }
 
-    const runninginvitePeople = await InvitePeople.findOne({
+    const runninginvitePeople:any = await InvitePeople.findOne({
       tenantUserId,
       status: 'invited',
       cancelStatus: { $in: ['cancel_request', 'pending'] },
     }).session(mongoSession);
 
-    if (!runninginvitePeople) {
-      throw new AppError(404, 'Running InvitePeople Not Found!!');
-    }
-
     const agreement: any = await Agreement.findOne({
-      invitePeopleId: invitePeople._id,
+      invitePeopleId: runninginvitePeople?._id,
     }).session(mongoSession);
 
-    if (!agreement) {
-      throw new AppError(404, 'Agreement is Not Found!!');
+
+
+    if (runninginvitePeople && agreement) {
+      const currentDate = new Date();
+      const startDate = new Date(agreement.startDate);
+
+      const monthDifference =
+        (currentDate.getFullYear() - startDate.getFullYear()) * 12 +
+        currentDate.getMonth() -
+        startDate.getMonth();
+
+      console.log('monthDifference =', monthDifference);
+
+      let dueAmount = 0;
+      if (monthDifference > 0) {
+        dueAmount = agreement.rentAmount * monthDifference;
+      }
+
+      console.log('dueAmount =', dueAmount);
+
+      const alreadyPaidAmount = await Payment.find({
+        tenantUserId,
+        invitedPropertyId: runninginvitePeople?._id,
+        status: 'paid',
+      }).session(mongoSession);
+
+      console.log('alreadyPaidAmount =', alreadyPaidAmount);
+
+      let paidAmount = 0;
+
+      if (alreadyPaidAmount?.length > 0) {
+        paidAmount = alreadyPaidAmount.reduce(
+          (acc, item) => acc + Number(item.rentAmount),
+          0,
+        );
+      }
+      const currentMonthRent = agreement.rentAmount;
+      let currentMonthDue = currentMonthRent - paidAmount;
+
+      if (currentMonthDue > 0) {
+        remainingAmount = currentMonthDue;
+      } else {
+        remainingAmount = 0;
+      }
+
+      if (dueAmount > paidAmount) {
+        const remainingDueAmount = Math.abs(dueAmount - paidAmount);
+
+        remainingAmount = remainingDueAmount;
+      }
+
+      const pendingMaintenance = await Maintenance.countDocuments({
+        tenantUserId,
+        propertyId: runninginvitePeople.propertyId,
+        status: 'pending',
+      });
+      const solvedMaintenance = await Maintenance.countDocuments({
+        tenantUserId,
+        propertyId: runninginvitePeople.propertyId,
+        status: 'solved',
+      });
+      const cancelMaintenance = await Maintenance.countDocuments({
+        tenantUserId,
+        propertyId: runninginvitePeople.propertyId,
+        status: 'cancel',
+      });
+
+      const newResult = {
+        deu: remainingAmount ? remainingAmount : 0,
+        maintenance: {
+          pending: pendingMaintenance,
+          solved: solvedMaintenance,
+          cancel: cancelMaintenance,
+        },
+        agreement: agreement
+          ? { status: 'Provided', endDate: agreement.endDate }
+          : { status: 'Not Provided', endDate: null },
+      };
+
+      return newResult;
+    } else {
+      return {
+        deu: 0,
+        maintenance: {
+          pending: 0,
+          solved: 0,
+          cancel: 0,
+        },
+        agreement: { status: 'Not Provided', endDate: null },
+      };
     }
 
-    const currentDate = new Date();
-    const startDate = new Date(agreement.startDate);
-
-    const monthDifference =
-      (currentDate.getFullYear() - startDate.getFullYear()) * 12 +
-      currentDate.getMonth() -
-      startDate.getMonth();
-
-    console.log('monthDifference =', monthDifference);
-
-    let dueAmount = 0;
-    if (monthDifference > 0) {
-      dueAmount = agreement.rentAmount * monthDifference;
-    }
-
-    console.log('dueAmount =', dueAmount);
-
-    const alreadyPaidAmount = await Payment.find({
-      tenantUserId,
-      invitedPropertyId: runninginvitePeople._id,
-      status: 'paid',
-    }).session(mongoSession);
-
-    console.log('alreadyPaidAmount =', alreadyPaidAmount);
-
-    let paidAmount = 0;
-
-    if (alreadyPaidAmount?.length > 0) {
-      paidAmount = alreadyPaidAmount.reduce(
-        (acc, item) => acc + Number(item.rentAmount),
-        0,
-      );
-    }
-      const currentMonthRent = agreement.rentAmount; 
-      let currentMonthDue = currentMonthRent - paidAmount; 
-
-     if (currentMonthDue > 0) {
-       remainingAmount = currentMonthDue; 
-     } else {
-       remainingAmount = 0; 
-     }
-
-     if (dueAmount > paidAmount) {
-       const remainingDueAmount = Math.abs(dueAmount - paidAmount);
-
-       remainingAmount = remainingDueAmount;
-     }
-
-
-     const pendingMaintenance = await Maintenance.countDocuments({
-       tenantUserId,
-       propertyId: runninginvitePeople.propertyId,
-       status: 'pending',
-     });
-     const solvedMaintenance = await Maintenance.countDocuments({
-       tenantUserId,
-       propertyId: runninginvitePeople.propertyId,
-       status: 'solved',
-     });
-     const cancelMaintenance = await Maintenance.countDocuments({
-       tenantUserId,
-       propertyId: runninginvitePeople.propertyId,
-       status: 'cancel',
-     });
-
-    const newResult = {
-      deu: remainingAmount ? remainingAmount : 0,
-      maintenance: {
-        pending: pendingMaintenance,
-        solved: solvedMaintenance,
-        cancel: cancelMaintenance,
-      },
-      agreement: agreement
-        ? { status: 'Provided', endDate: agreement.endDate }
-        : { status: 'Not Provided', endDate: null },
-    };
-
-
-
+   
     
 
     
 
     if (!session) await mongoSession.commitTransaction();
 
-    return newResult;
+    
   } catch (error) {
     if (!session) await mongoSession.abortTransaction();
     throw error;
@@ -416,9 +425,9 @@ const getRuningOverviewLandlordQuery = async (landlordUserId: string) => {
     cancelStatus: { $in: ['cancel_request', 'pending'] },
   });
 
-  if (!runninginvitePeople) {
-    throw new AppError(404, 'Running InvitePeople Not Found!!');
-  }
+  // if (!runninginvitePeople) {
+  //   throw new AppError(404, 'Running InvitePeople Not Found!!');
+  // }
 
   const maintenanceRequest = await Property.aggregate([
     {

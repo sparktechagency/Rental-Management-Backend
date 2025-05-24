@@ -34,23 +34,34 @@ const getAllAnnouncementByLandlordUserByPropertyIdQuery = async (
   query: Record<string, unknown>,
   propertyId: string,
 ) => {
-  const announcementQuery = new QueryBuilder(
-    Announcement.find({
-      propertyId,
+  const property = await Property.findById(propertyId);
+  if (property) {
+    const announcementQuery = new QueryBuilder(
+      Announcement.find({
+        propertyId,
 
-      //   isDeleted: false,
-    }),
-    query,
-  )
-    .search([''])
-    .filter()
-    .sort()
-    .paginate()
-    .fields();
+        //   isDeleted: false,
+      }),
+      query,
+    )
+      .search([''])
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
 
-  const result = await announcementQuery.modelQuery;
-  const meta = await announcementQuery.countTotal();
-  return { meta, result };
+    const result = await announcementQuery.modelQuery;
+    const meta = await announcementQuery.countTotal();
+    return { meta, result };
+  }else{
+    return { meta: {
+      page: 1,
+      limit: 10,
+      total: 0,
+      totalPage: 0
+    }, result: [] };
+  }
+  
 };
 
 const getAllAnnouncementByLandlordUserQuery = async (

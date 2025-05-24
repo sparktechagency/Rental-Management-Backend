@@ -37,7 +37,12 @@ const getAllNotificationQuery = async (
     ...result,
     ...adminAnnouncement,
   ]
-  return { meta, result:newResult };
+  const unReadNotification = await Notification.countDocuments({
+    userId,
+    isRead: false,
+  });
+  return { meta, result: { unReadCount: unReadNotification, newResult } };
+  // return { meta, result:newResult };
 };
 
 const getAllNotificationByAdminQuery = async (
@@ -78,6 +83,66 @@ const getAllAnnouncementNotificationByAdminQuery = async (
 const getSingleNotification = async (id: string) => {
   const result = await Notification.findById(id);
   return result;
+};
+
+const getSingleReadNotification = async (id: string, userId: string) => {
+  // Fetch the user by ID
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new AppError(404, 'User not found!');
+  }
+
+  const notification: any = await Notification.findById(id);
+  if (!notification) {
+    throw new AppError(404, 'Notification is not found!');
+  }
+
+  if (notification.userId.toString() !== userId) {
+    throw new AppError(
+      403,
+      'You are not authorized to access this notification!',
+    );
+  }
+
+  // Delete the SaveStory
+  const result = await Notification.findByIdAndUpdate(
+    id,
+    {
+      $set: {
+        isRead: true,
+      },
+    },
+    { new: true },
+  );
+  if (!result) {
+    throw new AppError(500, 'Error deleting SaveStory!');
+  }
+
+  const unReadNotification = await Notification.countDocuments({
+    userId,
+    isRead: false,
+  });
+
+  return { result, unReadCount : unReadNotification };
+};
+
+const getAllReadNotification = async (userId: string) => {
+  // Fetch the user by ID
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new AppError(404, 'User not found!');
+  }
+
+  const result = await Notification.updateMany(
+    { userId: userId },
+    { $set: { isRead: true } },
+  );
+  const unReadNotification = await Notification.countDocuments({
+    userId,
+    isRead: false,
+  });
+
+  return {result, unReadCount : unReadNotification};
 };
 
 const deleteNotification = async (id: string, userId: string) => {
@@ -135,6 +200,8 @@ export const notificationService = {
   getAllNotificationByAdminQuery,
   getAllAnnouncementNotificationByAdminQuery,
   deleteNotification,
+  getAllReadNotification,
+  getSingleReadNotification,
   getSingleNotification,
   deleteAdminNotification,
 };

@@ -12,6 +12,12 @@ notificationRoutes.post(
   //   validateRequest(paymnetValidation),
   NotificationController.createNotification,
 );
+notificationRoutes.post(
+  '/all-read',
+  auth(USER_ROLE.TENANT, USER_ROLE.LANDLORD),
+  //   validateRequest(paymnetValidation),
+  NotificationController.getAllReadNotification,
+);
 
 notificationRoutes.get(
   '',
@@ -29,6 +35,11 @@ notificationRoutes.get(
   NotificationController.getAllAnnouncementNotificationByAdmin,
 );
 notificationRoutes.get('/:id', NotificationController.getSingleNotification);
+notificationRoutes.patch(
+  '/read/:id',
+  auth(USER_ROLE.TENANT, USER_ROLE.LANDLORD),
+  NotificationController.getSingleReadNotification,
+);
 notificationRoutes.delete(
   '/:id',
   auth(USER_ROLE.TENANT, USER_ROLE.LANDLORD),
