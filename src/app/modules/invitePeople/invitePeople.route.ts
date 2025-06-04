@@ -14,20 +14,52 @@ invitePeopleRouter
     // validateRequest(videoValidation.VideoSchema),
     invitePeopleController.createInvitePeople,
   )
-  .get(
-    '/landlord',
-    auth(USER_ROLE.LANDLORD),
-    invitePeopleController.getAllInvitePeopleByLandlord,
-  )
-  .get(
-    '/tenant',
+  .post(
+    '/leave-request-tenant',
     auth(USER_ROLE.TENANT),
-    invitePeopleController.getAllInvitePeopleByTenant,
+
+    // validateRequest(videoValidation.VideoSchema),
+    invitePeopleController.leaveRequestTenant,
+  )
+
+  .get(
+    '/landlord-tenant',
+    auth(USER_ROLE.LANDLORD, USER_ROLE.TENANT),
+    invitePeopleController.getAllInvitePeopleByLandlordByTenant,
+  )
+  // .get(
+  //   '/tenant',
+  //   auth(USER_ROLE.TENANT),
+  //   invitePeopleController.getAllInvitePeopleByTenant,
+  // )
+  .get(
+    '/current-invited-tenant',
+    auth(USER_ROLE.TENANT),
+    invitePeopleController.getCurrentInvitedTenant,
   )
   .get(
     '/running-property',
     auth(USER_ROLE.TENANT),
-    invitePeopleController.getRuningInviteTenant,
+    invitePeopleController.getRuningInviteTenantDue,
+  )
+  .get(
+    '/running-overview-landlord',
+    auth(USER_ROLE.LANDLORD),
+    invitePeopleController.getRuningOverviewLandlord,
+  )
+  .get(
+    '/running-calendar-info',
+    auth(USER_ROLE.TENANT),
+    invitePeopleController.getRuningCalendarInfoByTenant,
+  )
+  .get(
+    '/running-calendar-info-by-landlord',
+    auth(USER_ROLE.LANDLORD),
+    invitePeopleController.getRuningCalendarInfoByLandlordQuery,
+  )
+  .get(
+    '/property/:id',
+    invitePeopleController.getSingleInvitePeopleByPropertyId,
   )
   .get('/:id', invitePeopleController.getSingleInvitePeople)
   .patch(
@@ -40,7 +72,19 @@ invitePeopleRouter
     auth(USER_ROLE.LANDLORD),
     invitePeopleController.inviteRequestVerifyByLandlord,
   )
-  
+  .patch(
+    '/accept-leave-request/:id',
+    auth(USER_ROLE.LANDLORD),
+    invitePeopleController.acceptleaveRequestTenant,
+  )
+  .patch(
+    '/delete-tenant/:id',
+    auth(USER_ROLE.LANDLORD),
+
+    // validateRequest(videoValidation.VideoSchema),
+    invitePeopleController.deleteTenantByLandlord,
+  )
+
   .delete(
     '/:id',
     auth(USER_ROLE.LANDLORD),

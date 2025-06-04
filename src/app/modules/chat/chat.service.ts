@@ -225,7 +225,7 @@ const getMyChatList = async (userId: string) => {
     participants: { $all: userId },
   }).populate({
     path: 'participants',
-    select: 'fullName email profile role _id phone',
+    select: 'fullName email image role _id phone',
     match: { _id: { $ne: userId } },
   });
 
@@ -238,27 +238,45 @@ const getMyChatList = async (userId: string) => {
   const data = [];
   for (const chatItem of chats) {
     const chatId = chatItem?._id;
-
-    // Find the latest message in the chat
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const message: any = await Message.findOne({ chat: chatId }).sort({
+    const message: any = await Message.findOne({ chatId: chatId }).sort({
       updatedAt: -1,
     });
 
     console.log('message', message);
 
     const unreadMessageCount = await Message.countDocuments({
-      chat: chatId,
+      chatId: chatId,
       seen: false,
       sender: { $ne: userId },
     });
     console.log('unreadMessageCount', unreadMessageCount);
 
-    if (message) {
-      data.push({ chat: chatItem, message: message, unreadMessageCount });
+    // if (message) {
+    //   data.push({ chat: chatItem, message: message, unreadMessageCount });
+    // }
+
+    const defaultMessage = 
+      {
+        _id: '',
+        text: '',
+        image: '',
+        seen: false,
+        sender: '',
+        receiver: '',
+        chatId: '',
+        createdAt:null,
+        updatedAt: null,
+        __v: ''
     }
+    
+
+
+    data.push({
+      chat: chatItem,
+      message: message ? message : defaultMessage,
+      unreadMessageCount: message ? unreadMessageCount : 0,
+    });
   
-      // data.push({ chat: chatItem, message: message, unreadMessageCount });
    
   }
   data.sort((a, b) => {
@@ -266,6 +284,7 @@ const getMyChatList = async (userId: string) => {
     const dateB = (b.message && b.message.createdAt) || 0;
     return dateB - dateA;
   });
+  console.log('data.length', data.length)
 
   return data.length ? data : chats;
 };

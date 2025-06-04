@@ -9,6 +9,10 @@ const NotificationSchema = new Schema<TNotification>(
       required: false,
       ref: 'User', // Reference to User model
     },
+    title: {
+      type: String,
+      required: false,
+    },
     message: {
       type: String,
       required: true,
@@ -20,7 +24,7 @@ const NotificationSchema = new Schema<TNotification>(
     },
     type: {
       type: String,
-      enum: ['info', 'warning', 'error', 'success'],
+      enum: ['info', 'warning', 'error', 'success', "announcement"],
       required: true,
     },
     status: {

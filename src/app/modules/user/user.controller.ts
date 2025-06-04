@@ -31,6 +31,18 @@ const userCreateVarification = catchAsync(async (req, res) => {
   });
 });
 
+const createAdmin = catchAsync(async (req, res) => {
+  const payload = req.body;
+  const newUser = await userService.createAdmin(payload);
+
+  return sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Admin create successfully',
+    data: newUser,
+  });
+});
+
 // const userSwichRole = catchAsync(async (req, res) => {
 //   const { userId } = req.user;
 //   const newUser = await userService.userSwichRoleService(userId);
@@ -45,6 +57,33 @@ const userCreateVarification = catchAsync(async (req, res) => {
 
 // rest >...............
 
+
+const googleLogin = catchAsync(async (req: Request, res: Response) => {
+  const result = await userService.googleLogin(req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Logged in successfully',
+    data: result,
+  });
+});
+
+
+const appleLogin = catchAsync(async (req: Request, res: Response) => {
+  const result = await userService.appleLogin(req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Logged in successfully',
+    data: result,
+  });
+});
+
+
+
+
 const getAllUsers = catchAsync(async (req, res) => {
   const result = await userService.getAllUserQuery(req.query);
 
@@ -54,6 +93,17 @@ const getAllUsers = catchAsync(async (req, res) => {
     meta: result.meta,
     data: result.result,
     message: 'Users All are requered successful!!',
+  });
+});
+
+const getAllLandlordWithProperty = catchAsync(async (req, res) => {
+  const result = await userService.getAllLandlordWithPropertyQuery(req.query);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    data: result,
+    message: 'Users All landlord with property are requered successful!!',
   });
 });
 
@@ -140,7 +190,8 @@ const updateMyProfile = catchAsync(async (req: Request, res: Response) => {
 });
 
 const blockedUser = catchAsync(async (req: Request, res: Response) => {
-  const result = await userService.blockedUser(req.params.id);
+  const { userId } = req.user;
+  const result = await userService.blockedUser(req.params.id, userId);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -162,13 +213,17 @@ const deleteMyAccount = catchAsync(async (req: Request, res: Response) => {
 export const userController = {
   createUser,
   userCreateVarification,
+  createAdmin,
   // userSwichRole,
+  googleLogin,
+  appleLogin,
   getUserById,
   getMyProfile,
   updateMyProfile,
   blockedUser,
   deleteMyAccount,
   getAllUsers,
+  getAllLandlordWithProperty,
   getAllTenantUsers,
   getAllUserCount,
   getAllUserRasio,

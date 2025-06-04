@@ -1,0 +1,5 @@
+DOCKER_INSTALLED=false
+CICD_USED=true
+CICD_TYPE=github
+ENV_CHANGED=false
+SERVER_RAN=true

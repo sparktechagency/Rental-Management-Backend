@@ -17,10 +17,15 @@ announcementsRouter
     announcementController.getAllAnnouncementByLandlordByall,
   )
   .get(
-    '/:id',
+    '/tenant',
     announcementController.getAllAnnouncementByLandlord,
   )
-  .get('/:id', announcementController.getSingleAnnouncement);
+  // .get(
+  //   '/tenant/:id',
+  //   announcementController.getAllAnnouncementByLandlord,
+  // )
+  .get('/single/:id', announcementController.getSingleAnnouncement)
+  .delete('/:id', auth(USER_ROLE.LANDLORD), announcementController.getSingleAnnouncementDeleted);
 
 export default announcementsRouter;
 

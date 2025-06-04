@@ -27,6 +27,10 @@ agreementRouter
     agreementController.getSingleAgreementByInvitedPeople,
   )
   .get(
+    '/running-agreement/:id',
+    agreementController.getSingleRunningAgreementByPropertyId,
+  )
+  .get(
     '/invitedPeople/status/:id',
     agreementController.getSingleAgreementStatusByInvitedPeople,
   )

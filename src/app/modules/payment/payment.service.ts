@@ -9,11 +9,13 @@ import httpStatus from 'http-status';
 import config from '../../config';
 import mongoose from 'mongoose';
 import { StripeAccount } from '../stripeAccount/stripeAccount.model';
-import { withdrawService } from '../withdraw/withdraw.service';
-import { Withdraw } from '../withdraw/withdraw.model';
+// import { withdrawService } from '../withdraw/withdraw.service';
+// import { Withdraw } from '../withdraw/withdraw.model';
 import cron from 'node-cron';
 import { notificationService } from '../notification/notification.service';
 import InvitePeople from '../invitePeople/invitePeople.model';
+import { invitePeopleService } from '../invitePeople/invitePeople.service';
+import { duePaymentService } from '../rentDue/rentDue.service';
 
 type SessionData = Stripe.Checkout.Session;
 
@@ -79,7 +81,7 @@ const addPaymentService = async (payload: any) => {
     }
 
     if (!stripeAccountCompleted.isCompleted) {
-      throw new AppError(404, 'Landlort Stripe Account is Completed !!');
+      throw new AppError(404, 'Landlort Stripe Account is not Completed !!');
     }
 
     const paymentInfo = {
@@ -112,6 +114,36 @@ const addPaymentService = async (payload: any) => {
 
 const getAllPaymentService = async (query: Record<string, unknown>) => {
   const PaymentQuery = new QueryBuilder(Payment.find(), query)
+    .search(['name'])
+    .filter()
+    .sort()
+    .paginate()
+    .fields();
+
+  const result = await PaymentQuery.modelQuery;
+  const meta = await PaymentQuery.countTotal();
+  return { meta, result };
+};
+
+const getAllPaymentTenantLandlordService = async (
+  query: Record<string, unknown>,
+  userId: string,
+) => {
+
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new AppError(404, 'User Not Found!!');
+  }
+
+  const userField = user.role === 'tenant' ? 'tenantUserId' : 'landlordUserId';
+
+
+  const PaymentQuery = new QueryBuilder(
+    Payment.find({ [userField]: userId, status: 'paid' })
+      .populate({path:'tenantUserId', select:'fullName email image role _id phone '})
+      .populate({path:'landlordUserId', select:'fullName email image role _id phone '}),
+    query,
+  )
     .search(['name'])
     .filter()
     .sort()
@@ -176,7 +208,7 @@ const getAllIncomeRatio = async (year: number) => {
     {
       $group: {
         _id: { month: { $month: '$transactionDate' } },
-        totalIncome: { $sum: '$amount' },
+        totalIncome: { $sum: '$adminChargeAmount' },
       },
     },
     {
@@ -190,6 +222,8 @@ const getAllIncomeRatio = async (year: number) => {
       $sort: { month: 1 },
     },
   ]);
+
+  // console.log('incomeData', incomeData);
 
   incomeData.forEach((data) => {
     const monthData = months.find((m) => m.month === data.month);
@@ -407,7 +441,6 @@ const createCheckout = async (userId: any, payload: any) => {
   //   quantity: product.quantity,
   // }));
 
-
   const lineItems = [
     {
       price_data: {
@@ -504,6 +537,17 @@ const automaticCompletePayment = async (event: Stripe.Event): Promise<void> => {
           );
         }
 
+        const invitedProperty = await InvitePeople.findById(
+          invitedPropertyId,
+        )
+
+        if (!invitedProperty) {
+          throw new AppError(
+            httpStatus.BAD_REQUEST,
+            'Invited Property Not Found!!',
+          );
+        }
+
         const paymentIntent = await stripe.paymentIntents.retrieve(
           paymentIntentId as string,
         );
@@ -514,6 +558,7 @@ const automaticCompletePayment = async (event: Stripe.Event): Promise<void> => {
 
         const paymentData: any = {
           tenantUserId: tenantUserId,
+          landlordUserId: invitedProperty.landlordUserId,
           rentAmount: paymentIntent.amount_received / 100,
           adminChargeAmount: (paymentIntent.amount_received / 100) * 0.15, // 15% for admin charged amount: paymentIntent.amount_received / 100,
           method: 'stripe',
@@ -531,6 +576,26 @@ const automaticCompletePayment = async (event: Stripe.Event): Promise<void> => {
             httpStatus.BAD_REQUEST,
             'Payment record creation failed',
           );
+
+        }
+
+        const deuAmount:any =
+          await invitePeopleService.getRuningInviteTenantPropertyDeuQuery(
+            tenantUserId,
+          );
+
+        const dueAmuntCreateData: any = {
+          tenantUserId: tenantUserId,
+          landlordUserId: invitedProperty.landlordUserId,
+          propertyId: invitedProperty.propertyId,
+          amount: deuAmount && deuAmount - paymentIntent.amount_received / 100,
+        };
+
+        const dueAmountCreate =
+          duePaymentService.createDuePaymentService(dueAmuntCreateData , session);
+
+        if (!dueAmountCreate) {
+          throw new AppError(403, 'Due Payment is Faild!!');
         }
 
         const notificationData1 = {
@@ -538,10 +603,22 @@ const automaticCompletePayment = async (event: Stripe.Event): Promise<void> => {
           message: 'Payment is successfull!!',
           type: 'success',
         };
+        const notificationData2 = {
+          userId: invitedProperty.landlordUserId,
+          message: 'Payment is successfull!!',
+          type: 'success',
+        };
+        const notificationData3 = {
+          userId: tenantUserId,
+          message: 'Payment is successfull!!',
+          type: 'success',
+        };
 
         const [notification] = await Promise.all([
           // notificationService.createNotification(notificationData),
           notificationService.createNotification(notificationData1),
+          notificationService.createNotification(notificationData2),
+          notificationService.createNotification(notificationData3),
         ]);
 
         if (!notification) {
@@ -551,41 +628,38 @@ const automaticCompletePayment = async (event: Stripe.Event): Promise<void> => {
         const connectedAccountId = metadata?.connectedAccountId as string;
         const amountToPayout = (paymentIntent.amount_received / 100) * 0.85;
 
-       const externalAccounts = await stripe.accounts.listExternalAccounts(
-         connectedAccountId,
-        //  { object: 'bank_account' },
-       );
-       console.log('External accounts linked:', externalAccounts);
+        const externalAccounts = await stripe.accounts.listExternalAccounts(
+          connectedAccountId,
+          //  { object: 'bank_account' },
+        );
+        console.log('External accounts linked:', externalAccounts);
 
-       if (externalAccounts.data.length === 0) {
-         throw new Error('No bank account linked for payouts.');
-       }
+        if (externalAccounts.data.length === 0) {
+          throw new Error('No bank account linked for payouts.');
+        }
 
-       const cardAccount = externalAccounts.data.find(
-         (account) => account.object === 'card',
-       );
+        const cardAccount = externalAccounts.data.find(
+          (account) => account.object === 'card',
+        );
 
         const mainAccount = await stripe.accounts.retrieve();
 
-       if(cardAccount){
+        if (cardAccount) {
+          const payout = await stripe.payouts.create(
+            {
+              amount: amountToPayout * 100,
+              currency: 'usd',
+              destination: connectedAccountId,
+            },
+            {
+              stripeAccount: mainAccount.id,
+            },
+          );
 
-        const payout = await stripe.payouts.create(
-          {
-            amount: amountToPayout * 100,
-            currency: 'usd',
-            destination: connectedAccountId,
-          },
-          {
-            stripeAccount: mainAccount.id,
-          },
-        );
-
-        if (!payout) {
-          throw new Error('Payout creation failed');
+          if (!payout) {
+            throw new Error('Payout creation failed');
+          }
         }
-
-      }
-       
 
         await session.commitTransaction();
         session.endSession();
@@ -686,14 +760,14 @@ const getAllEarningRatio = async (year: number, businessId: string) => {
   const incomeData = await Payment.aggregate([
     {
       $match: {
-        status: 'complete',
+        status: 'paid',
         transactionDate: { $gte: startOfYear, $lt: endOfYear },
       },
     },
     {
       $group: {
         _id: { month: { $month: '$transactionDate' } },
-        totalIncome: { $sum: '$amount' },
+        totalIncome: { $sum: '$adminChargeAmount' },
       },
     },
     {
@@ -707,6 +781,8 @@ const getAllEarningRatio = async (year: number, businessId: string) => {
       $sort: { month: 1 },
     },
   ]);
+
+  console.log('incomeData', incomeData);
 
   incomeData.forEach((data) => {
     const monthData = months.find((m) => m.month === data.month);
@@ -777,7 +853,7 @@ const createStripeAccount = async (
   });
   // console.log('stripe account', account);
 
-  await StripeAccount.create({ accountId: account.id, userId: user.userId});
+  await StripeAccount.create({ accountId: account.id, userId: user.userId });
 
   const onboardingLink = await stripe.accountLinks.create({
     account: account.id,
@@ -867,16 +943,14 @@ const createStripeAccount = async (
 //   // await transferBalanceService();
 // });
 
-
-
- // login stripe account
+// login stripe account
 
 const stripeConnectedAccountLoginQuery = async (landlordUserId: string) => {
   console.log('completed account hit hoise');
   const isExistaccount = await StripeAccount.findOne({
     userId: landlordUserId,
     isCompleted: true,
-  })
+  });
 
   if (!isExistaccount) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Account Not Found!!');
@@ -892,14 +966,10 @@ const stripeConnectedAccountLoginQuery = async (landlordUserId: string) => {
   return account;
 };
 
-
-
-
-
-
 export const paymentService = {
   addPaymentService,
   getAllPaymentService,
+  getAllPaymentTenantLandlordService,
   singlePaymentService,
   deleteSinglePaymentService,
   getAllPaymentByCustomerService,

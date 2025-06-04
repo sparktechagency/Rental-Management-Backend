@@ -7,7 +7,7 @@ import settingsRouter from '../modules/settings/setting.route';
 import notificationRoutes from '../modules/notification/notification.route';
 import paymentRouter from '../modules/payment/payment.route';
 // import walletRouter from '../modules/wallet/wallet.route';
-import withdrawRouter from '../modules/withdraw/withdraw.route';
+// import withdrawRouter from '../modules/withdraw/withdraw.route';
 import reviewRouter from '../modules/ratings/ratings.route';
 import faqRouter from '../modules/faq/faq.route';
 import propertyRouter from '../modules/property/property.route';
@@ -18,6 +18,8 @@ import maintenanceRouter from '../modules/maintenance/maintenance.route';
 import adminAnnouncementsRouter from '../modules/admin.announcements/admin.announcements.route';
 import chatRouter from '../modules/chat/chat.route';
 import messageRouter from '../modules/message/message.route';
+import offlinePaymentRouter from '../modules/offlinePayment/offlinePayment.route';
+import rentDueRouter from '../modules/rentDue/rentDue.route';
 
 const router = Router();
 
@@ -51,10 +53,10 @@ const moduleRoutes = [
     path: '/payment',
     route: paymentRouter,
   },
-  {
-    path: '/withdraw',
-    route: withdrawRouter,
-  },
+  // {
+  //   path: '/withdraw',
+  //   route: withdrawRouter,
+  // },
 
   {
     path: '/review',
@@ -95,6 +97,14 @@ const moduleRoutes = [
   {
     path: '/admin-announcement',
     route: adminAnnouncementsRouter,
+  },
+  {
+    path: '/offline-payment',
+    route: offlinePaymentRouter,
+  },
+  {
+    path: '/rent-due',
+    route: rentDueRouter,
   },
 ];
 moduleRoutes.forEach((route) => router.use(route.path, route.route));

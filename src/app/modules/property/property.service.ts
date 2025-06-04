@@ -17,30 +17,33 @@ const createPropertyService = async (payload: TProperty) => {
     throw new AppError(404, 'Landlord User Not Found!!');
   }
 
-  // const isStripeConnectedAccount = await StripeAccount.findOne({
-  //   userId: payload.landlordUserId,
-  // });
+  if(landlordUser.paymentAccount && landlordUser.paymentAccount === true){
+    const isStripeConnectedAccount = await StripeAccount.findOne({
+      userId: payload.landlordUserId,
+    });
 
-  // if (!isStripeConnectedAccount) {
-  //   throw new AppError(404, 'Stripe Connected Account Not Found!!');
-  // }
+    if (!isStripeConnectedAccount) {
+      throw new AppError(404, 'Stripe Connected Account Not Found!!');
+    }
 
-  // if (isStripeConnectedAccount.isCompleted === false) {
-  //   throw new AppError(
-  //     404,
-  //     'Stripe Connected Account Not Valid or incompleted. Please again create account!!',
-  //   );
-  // }
+    if (isStripeConnectedAccount.isCompleted === false) {
+      throw new AppError(
+        404,
+        'Stripe Connected Account Not Valid or incompleted. Please again create account!!',
+      );
+    }
 
-  // const account = await stripe.accounts.retrieve(
-  //   isStripeConnectedAccount.accountId,
-  // );
-  // if (!account.payouts_enabled) {
-  //   throw new AppError(
-  //     httpStatus.BAD_REQUEST,
-  //     'Payouts are not enabled for this account',
-  //   );
-  // }
+    const account = await stripe.accounts.retrieve(
+      isStripeConnectedAccount.accountId,
+    );
+    if (!account.payouts_enabled) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        'Payouts are not enabled for this account',
+      );
+    } 
+
+  }
 
 
 //  try {
@@ -67,46 +70,50 @@ const createPropertyService = async (payload: TProperty) => {
 //  }
 
 
+console.log('property peyload==', payload)
 
   const result = await Property.create(payload);
 
   if (!result) {
-    throw new AppError(403, 'Property create is faild!!');
-  }
-
-  const imagePaths = payload.images.map((image: string) => `public/${image}`);
-  const filesPaths = payload.propertyFiles.map(
-    (file: string) => `public/${file}`,
-  );
-
-  console.log('imagePaths', imagePaths);
-  console.log('filesPaths', filesPaths);
-
-  try {
-    await Promise.all(
-      imagePaths.map(async (imagePath) => {
-        try {
-          await access(imagePath);
-          await unlink(imagePath);
-        } catch (error: any) {
-          console.error(`Error handling image at ${imagePath}:`, error.message);
-        }
-      }),
+    const imagePaths = payload.images.map((image: string) => `public/${image}`);
+    const filesPaths = payload.propertyFiles.map(
+      (file: string) => `public/${file}`,
     );
 
-    await Promise.all(
-      filesPaths.map(async (filePath) => {
-        try {
-          await access(filePath);
-          await unlink(filePath);
-        } catch (error: any) {
-          console.error(`Error handling file at ${filePath}:`, error.message);
-        }
-      }),
-    );
-  } catch (error: any) {
-    console.error('Error deleting files or images:', error.message);
+    console.log('imagePaths', imagePaths);
+    console.log('filesPaths', filesPaths);
+
+    try {
+      await Promise.all(
+        imagePaths.map(async (imagePath) => {
+          try {
+            await access(imagePath);
+            await unlink(imagePath);
+          } catch (error: any) {
+            console.error(
+              `Error handling image at ${imagePath}:`,
+              error.message,
+            );
+          }
+        }),
+      );
+
+      await Promise.all(
+        filesPaths.map(async (filePath) => {
+          try {
+            await access(filePath);
+            await unlink(filePath);
+          } catch (error: any) {
+            console.error(`Error handling file at ${filePath}:`, error.message);
+          }
+        }),
+      );
+    } catch (error: any) {
+      console.error('Error deleting files or images:', error.message);
+    }
   }
+
+  
 
   return result;
 };
@@ -175,18 +182,19 @@ const getAllPropertyByAdminQuery = async (query: Record<string, unknown>) => {
 
 
 const getSinglePropertyQuery = async (id: string) => {
-  const property = await Property.findById(id);
+  const property = await Property.findById(id).populate('landlordUserId');
   if (!property) {
     throw new AppError(404, 'Property Not Found!!');
   }
-  const result = await Property.aggregate([
-    { $match: { _id: new mongoose.Types.ObjectId(id) } },
-  ]);
-  if (result.length === 0) {
-    throw new AppError(404, 'Property not found!');
-  }
+  // const result = await Property.aggregate([
+  //   { $match: { _id: new mongoose.Types.ObjectId(id) } },
+  // ]);
 
-  return result[0];
+  // if (result.length === 0) {
+  //   throw new AppError(404, 'Property not found!');
+  // }
+
+  return property;
 };
 
 const updatePropertyQuery = async (id: string, payload: Partial<TProperty>) => {
@@ -200,6 +208,10 @@ const updatePropertyQuery = async (id: string, payload: Partial<TProperty>) => {
 
   const oldImages = property.images || [];
   const oldPropertyFiles = property.propertyFiles || [];
+  const newDocumentProperty = payload.propertyFiles || [];
+  payload.propertyFiles = [
+    ...new Set([...oldPropertyFiles, ...newDocumentProperty]),
+  ]
   const { remainingImageUrl, remainingFilesUrl, ...rest }: any = payload;
   console.log('rest==', rest);
 
@@ -213,45 +225,45 @@ const updatePropertyQuery = async (id: string, payload: Partial<TProperty>) => {
     throw new AppError(403, 'Product updated faield !!');
   }
 
-  const newImages = result.images || [];
-  const newFiles = result.propertyFiles || [];
-  const imagesToDelete = oldImages.filter(
-    (oldImage: string) => !newImages.includes(oldImage),
-  );
-  const filesToDelete = oldPropertyFiles.filter(
-    (oldFile: string) => !newFiles.includes(oldFile),
-  );
-  console.log('imagesToDelete==', imagesToDelete);
+  // const newImages = result.images || [];
+  // const newFiles = result.propertyFiles || [];
+  // const imagesToDelete = oldImages.filter(
+  //   (oldImage: string) => !newImages.includes(oldImage),
+  // );
+  // const filesToDelete = oldPropertyFiles.filter(
+  //   (oldFile: string) => !newFiles.includes(oldFile),
+  // );
+  // console.log('imagesToDelete==', imagesToDelete);
 
-  if (imagesToDelete.length > 0) {
-    for (const image of imagesToDelete) {
-      const imagePath = `public/${image}`;
-      try {
-        await access(imagePath);
-        await unlink(imagePath);
-        console.log(`Deleted image: ${imagePath}`);
-      } catch (error: any) {
-        console.error(`Error handling file at ${imagePath}:`, error.message);
-      }
-    }
-  }
+  // if (imagesToDelete.length > 0) {
+  //   for (const image of imagesToDelete) {
+  //     const imagePath = `public/${image}`;
+  //     try {
+  //       await access(imagePath);
+  //       await unlink(imagePath);
+  //       console.log(`Deleted image: ${imagePath}`);
+  //     } catch (error: any) {
+  //       console.error(`Error handling file at ${imagePath}:`, error.message);
+  //     }
+  //   }
+  // }
 
-  if (filesToDelete.length > 0) {
-    for (const file of filesToDelete) {
-      const filePath = `public/${file}`;
-      try {
-        await access(filePath);
-        await unlink(filePath);
-        console.log(`Deleted image: ${filePath}`);
-      } catch (error: any) {
-        console.error(`Error handling file at ${filePath}:`, error.message);
-      }
-    }
-  }
+  // if (filesToDelete.length > 0) {
+  //   for (const file of filesToDelete) {
+  //     const filePath = `public/${file}`;
+  //     try {
+  //       await access(filePath);
+  //       await unlink(filePath);
+  //       console.log(`Deleted image: ${filePath}`);
+  //     } catch (error: any) {
+  //       console.error(`Error handling file at ${filePath}:`, error.message);
+  //     }
+  //   }
+  // }
 
-  if (!result) {
-    throw new AppError(404, 'Property Not Found or Unauthorized Access!');
-  }
+  // if (!result) {
+  //   throw new AppError(404, 'Property Not Found or Unauthorized Access!');
+  // }
   return result;
 };
 

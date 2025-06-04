@@ -16,10 +16,12 @@ const fileUpload = (uploadDirectory: string) => {
         extenson = '.' + parts.pop();
       }
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+      console.log('uniqueSuffix', uniqueSuffix);
       cb(
         null,
         parts.shift()!.replace(/\s+/g, '_') + '-' + uniqueSuffix + extenson,
       );
+        console.log('uniqueSuffix', uniqueSuffix);
     },
   });
   

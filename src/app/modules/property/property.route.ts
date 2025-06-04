@@ -14,7 +14,7 @@ propertyRouter
     auth(USER_ROLE.LANDLORD),
     upload.fields([
       { name: 'images', maxCount: 5 },
-      { name: 'propertyFiles', maxCount: 5 },
+      { name: 'propertyFiles', maxCount: 10 },
     ]),
 
     // validateRequest(videoValidation.VideoSchema),

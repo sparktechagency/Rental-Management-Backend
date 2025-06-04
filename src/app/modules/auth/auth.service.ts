@@ -20,6 +20,7 @@ import { generateOptAndExpireTime } from '../otp/otp.utils';
 import { otpServices } from '../otp/otp.service';
 import { otpSendEmail } from '../../utils/eamilNotifiacation';
 import { OTPVerifyAndCreateUserProps, userService } from '../user/user.service';
+import { notificationService } from '../notification/notification.service';
 
 // Login
 const login = async (payload: TLogin) => {
@@ -63,6 +64,14 @@ const login = async (payload: TLogin) => {
     expity_time: config.jwt_refresh_expires_in as string,
   });
 
+  // const notificationData = {
+  //   userId: user?._id?.toString() as string,
+  //   type: 'success',
+  //   message: 'Login successfully',
+  // };
+  // await notificationService.createNotification(notificationData);
+
+
   return {
     user,
     accessToken,
@@ -70,11 +79,18 @@ const login = async (payload: TLogin) => {
   };
 };
 
+
+
+
 // forgot Password
 const forgotPassword = async (email: string) => {
   const user: TUser | null = await User.isUserActive(email);
   if (!user) {
     throw new AppError(httpStatus.BAD_REQUEST, 'User not found');
+  }
+
+  if (user.type === 'google' || user.type === 'apple') {
+    throw new AppError(httpStatus.BAD_REQUEST, 'You can not valid user!!');
   }
 
   const { isExist, isExpireOtp } = await otpServices.checkOtpByEmail(email);

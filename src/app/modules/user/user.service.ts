@@ -35,6 +35,10 @@ const createUserToken = async (payload: TUserCreate) => {
     throw new AppError(httpStatus.BAD_REQUEST, 'User data is not valid !!');
   }
 
+  if(!payload.password || !payload.email || !payload.fullName){
+    throw new AppError(httpStatus.BAD_REQUEST, 'password and email and fullName is required !!');
+  }
+
   // user exist check
   const userExist = await userService.getUserByEmail(email);
 
@@ -153,48 +157,6 @@ const otpVerifyAndCreateUser = async ({
     );
   }
 
-  // const userExist = await User.isUserExist(email as string);
-
-  // // const userExist = await User.findOne({ email: email, role: role });
-
-  // if (userExist) {
-  //   console.log('userExist');
-    
-  //   const passwordEncript = await bcrypt.hash(password, 10);
-
-  //   const user = await User.findOneAndUpdate(
-  //     { email: email },
-  //     { role: role, asRole: asRole, password: passwordEncript },
-  //     {
-  //       new: true,
-  //     },
-  //   );
-
-  //   if (!user) {
-  //     throw new AppError(httpStatus.BAD_REQUEST, 'User creation failed');
-  //   }
-
-  //   const jwtPayload: {
-  //     userId: string;
-  //     role: string;
-  //     fullName: string;
-  //     email: string;
-  //   } = {
-  //     fullName: user?.fullName,
-  //     email: user.email,
-  //     userId: user?._id?.toString() as string,
-  //     role: user?.role,
-  //   };
-
-  //   const userToken = createToken({
-  //     payload: jwtPayload,
-  //     access_secret: config.jwt_access_secret as string,
-  //     expity_time: config.jwt_access_expires_in as string | number,
-  //   });
-
-  //   return { user, userToken };
-
-  // }
 
 
  const userData = {
@@ -203,6 +165,66 @@ const otpVerifyAndCreateUser = async ({
    fullName,
    role,
  };
+
+  const user = await User.create(userData);
+
+  if (!user) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'User creation failed');
+  }
+
+  const jwtPayload: {
+    userId: string;
+    role: string;
+    fullName: string;
+    email: string;
+  } = {
+    fullName: user?.fullName,
+    email: user.email,
+    userId: user?._id?.toString() as string,
+    role: user?.role,
+  };
+
+  const userToken = createToken({
+    payload: jwtPayload,
+    access_secret: config.jwt_access_secret as string,
+    expity_time: config.jwt_access_expires_in as string | number,
+  });
+
+   const refreshToken = createToken({
+      payload: jwtPayload,
+      access_secret: config.jwt_refresh_secret as string,
+      expity_time: config.jwt_refresh_expires_in as string,
+    });
+
+  return {user, userToken, refreshToken};
+};
+
+
+const createAdmin = async (payload: any) => {
+
+ 
+
+  const isExist = await User.isUserExist(payload.email as string);
+
+  if (isExist) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'User already exists with this email',
+    );
+  }
+  if (!payload.email || !payload.password || !payload.fullName) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'Email, password and fullName are required',
+    );
+  }
+
+  const userData = {
+    password: payload.password,
+    email: payload.email,
+    fullName: payload.fullName,
+    role:payload.role,
+  };
 
   const user = await User.create(userData);
 
@@ -228,8 +250,215 @@ const otpVerifyAndCreateUser = async ({
   //   expity_time: config.jwt_access_expires_in as string | number,
   // });
 
+  // const refreshToken = createToken({
+  //   payload: jwtPayload,
+  //   access_secret: config.jwt_refresh_secret as string,
+  //   expity_time: config.jwt_refresh_expires_in as string,
+  // });
+
   return user;
 };
+
+
+const googleLogin = async (payload: any) => {
+
+  if (!payload?.email || !payload?.googleId || !payload?.role) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Missing required fields');
+  }
+  const userData = {
+    email: payload?.email,
+    fullName: 'User Name',
+    role: payload.role,
+    type: 'google',
+    loginId: payload?.googleId,
+  };
+
+
+  const user = await User.findOne({
+    email: payload?.email,
+    loginId: payload?.googleId,
+    type: 'google',
+    isActive: true,
+    isDeleted: false,
+  }).select('+password image fullName email role');
+
+  let accessToken;
+  let refreshToken;
+  if (user) {
+    const jwtPayload: {
+      userId: string;
+      role: string;
+      fullName: string;
+      email: string;
+    } = {
+      fullName: user?.fullName,
+      email: user.email,
+      userId: user?._id?.toString() as string,
+      role: user?.role,
+    };
+
+    // console.log({ jwtPayload });
+
+    accessToken = createToken({
+      payload: jwtPayload,
+      access_secret: config.jwt_access_secret as string,
+      expity_time: config.jwt_access_expires_in as string,
+    });
+
+    // console.log({ accessToken });
+
+    refreshToken = createToken({
+      payload: jwtPayload,
+      access_secret: config.jwt_refresh_secret as string,
+      expity_time: config.jwt_refresh_expires_in as string,
+    });
+    return {
+      user,
+      accessToken,
+      refreshToken,
+    };
+  } else {
+    const userGoogleLogin = await User.create(userData);
+    // console.log('user', user);
+    if (!userGoogleLogin) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'User Created failed');
+    }
+
+    const jwtPayload: {
+      userId: string;
+      role: string;
+      fullName: string;
+      email: string;
+    } = {
+      fullName: userGoogleLogin?.fullName,
+      email: userGoogleLogin.email,
+      userId: userGoogleLogin?._id?.toString() as string,
+      role: userGoogleLogin?.role,
+    };
+
+    accessToken = createToken({
+      payload: jwtPayload,
+      access_secret: config.jwt_access_secret as string,
+      expity_time: config.jwt_access_expires_in as string,
+    });
+
+    refreshToken = createToken({
+      payload: jwtPayload,
+      access_secret: config.jwt_refresh_secret as string,
+      expity_time: config.jwt_refresh_expires_in as string,
+    });
+
+    return {
+      user: userGoogleLogin,
+      accessToken,
+      refreshToken,
+    };
+  }
+};
+
+
+const appleLogin = async (payload: any) => {
+
+  if (!payload?.appleId || !payload?.role) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Missing required fields');
+  }
+  const userData = {
+    email: `${payload?.appleId}@gmail.com`,
+    fullName: 'User Name',
+    role: payload.role,
+    type: 'apple',
+    loginId: payload?.appleId,
+  };
+
+  console.log('userData==', userData);
+
+
+  const user = await User.findOne({
+    email: `${payload?.appleId}@gmail.com`,
+    loginId: payload?.appleId,
+    type: 'apple',
+    isActive: true,
+    isDeleted: false,
+  }).select('+password image fullName email role');
+
+  console.log('user===', user);
+
+  let accessToken;
+  let refreshToken;
+  if (user) {
+    const jwtPayload: {
+      userId: string;
+      role: string;
+      fullName: string;
+      email: string;
+    } = {
+      fullName: user?.fullName,
+      email: user.email,
+      userId: user?._id?.toString() as string,
+      role: user?.role,
+    };
+
+    // console.log({ jwtPayload });
+
+    accessToken = createToken({
+      payload: jwtPayload,
+      access_secret: config.jwt_access_secret as string,
+      expity_time: config.jwt_access_expires_in as string,
+    });
+
+    // console.log({ accessToken });
+
+    refreshToken = createToken({
+      payload: jwtPayload,
+      access_secret: config.jwt_refresh_secret as string,
+      expity_time: config.jwt_refresh_expires_in as string,
+    });
+    return {
+      user,
+      accessToken,
+      refreshToken,
+    };
+  } else {
+    console.log('apple login')
+    const userGoogleLogin = await User.create(userData);
+    // console.log('user', user);
+    if (!userGoogleLogin) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'User Created failed');
+    }
+
+    const jwtPayload: {
+      userId: string;
+      role: string;
+      fullName: string;
+      email: string;
+    } = {
+      fullName: userGoogleLogin?.fullName,
+      email: userGoogleLogin.email,
+      userId: userGoogleLogin?._id?.toString() as string,
+      role: userGoogleLogin?.role,
+    };
+
+    accessToken = createToken({
+      payload: jwtPayload,
+      access_secret: config.jwt_access_secret as string,
+      expity_time: config.jwt_access_expires_in as string,
+    });
+
+    refreshToken = createToken({
+      payload: jwtPayload,
+      access_secret: config.jwt_refresh_secret as string,
+      expity_time: config.jwt_refresh_expires_in as string,
+    });
+
+    return {
+      user: userGoogleLogin,
+      accessToken,
+      refreshToken,
+    };
+  }
+};
+
+
 
 // const userSwichRoleService = async (id: string) => {
 //   const swichUser = await User.findById(id);
@@ -348,9 +577,44 @@ const getAllUserQuery = async (query: Record<string, unknown>) => {
   return { meta, result };
 };
 
+
+const getAllLandlordWithPropertyQuery = async (
+  query: Record<string, unknown>,
+) => {
+
+  const userWithPropertyQuery = await User.aggregate([
+    {
+      $match: {
+        role: USER_ROLE.LANDLORD,
+      },
+    },
+    {
+      $lookup: {
+        from: 'properties',
+        localField: '_id',
+        foreignField: 'landlordUserId',
+        as: 'properties',
+      },
+    },
+    {
+      $project: {
+        image: 1,
+        fullName: 1,
+        email: 1,
+        role: 1,
+        phone: 1,
+        address: 1,
+        properties: 1,
+      },
+    },
+  ]);
+
+  return userWithPropertyQuery;
+};
+
 const getAllTenantUserQuery = async (query: Record<string, unknown>) => {
-  const userQuery = new QueryBuilder(User.find({role:"tenant"}), query)
-    .search([''])
+  const userQuery = new QueryBuilder(User.find({ role: 'tenant' }), query)
+    .search(['fullName', 'email'])
     .filter()
     .sort()
     .paginate()
@@ -471,30 +735,56 @@ const deleteMyAccount = async (id: string, payload: DeleteAccountPayload) => {
   return userDeleted;
 };
 
-const blockedUser = async (id: string) => {
+const blockedUser = async (id: string, userId: string) => {
+  const existUser: TUser | null = await User.findById(id);
+
+  if (!existUser) {
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+  }
+
+  const blocker: TUser | null = await User.findById(userId);
+
+  if (!blocker) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Admin not found');
+  }
+
+  if (existUser.role === blocker.role) {
+    throw new AppError(httpStatus.FORBIDDEN, 'You cannot block this Person!!');
+  }
+  if (existUser.role === 'super_admin') {
+    throw new AppError(httpStatus.FORBIDDEN, 'You cannot block this Person!!');
+  }
+
+  const blockUnblockSwich = existUser.isActive ? false : true;
+
   const user = await User.findByIdAndUpdate(
     id,
-    { isActive: false },
+    { isActive: blockUnblockSwich },
     { new: true },
   );
 
   if (!user) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'user deleting failed');
+    throw new AppError(httpStatus.BAD_REQUEST, 'user blocking failed');
   }
 
   return user;
 };
 
+
 export const userService = {
   createUserToken,
   otpVerifyAndCreateUser,
+  createAdmin,
   // userSwichRoleService,
+  googleLogin,
+  appleLogin,
   getUserById,
   getUserByEmail,
   updateUser,
   deleteMyAccount,
   blockedUser,
   getAllUserQuery,
+  getAllLandlordWithPropertyQuery,
   getAllTenantUserQuery,
   getAllUserCount,
   getAllUserRatio,

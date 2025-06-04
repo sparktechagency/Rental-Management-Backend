@@ -101,77 +101,100 @@ import { User } from '../user/user.models';
 //   return result;
 // };
 
-
 //------------------------------------------------------//
 
 //------------------------------------------------------//
 
 const createMessages = async (payload: IMessages) => {
-  console.log('payload===', payload);
+  console.log('payload khela hobe', payload);
 
   const sender = await User.findById(payload.sender);
+  // console.log('sender==', sender);
 
   if (!sender) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Sender is not found!!');
   }
-  const receiver = await User.findById(payload.receiver);
+  const chat = await Chat.findById(payload.chatId);
+  if (!chat) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Chat is not found!!');
+  }
+
+  console.log('chat part', chat);
+
+  const receiver = chat.participants.find(
+    (id) => id.toString() !== sender._id.toString(),
+  );
+
+
+  console.log('receiver==', receiver);
 
   if (!receiver) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Recever is not found!!');
   }
 
- if (sender._id.toString() === receiver._id.toString()) {
-   throw new AppError(
-     httpStatus.BAD_REQUEST,
-     'Sender and Receiver cannot be the same person. Please change.',
-   );
- }
+  payload.receiver = receiver;
 
+  console.log('payload last part', payload);
+
+  if (sender._id.toString() === receiver._id.toString()) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Sender and Receiver cannot be the same person. Please change.',
+    );
+  }
 
   const alreadyExists = await Chat.findOne({
     participants: { $all: [payload.sender, payload.receiver] },
   }).populate(['participants']);
-  console.log('alreadyExists', alreadyExists);
 
   if (!alreadyExists) {
     const chatList = await Chat.create({
       participants: [payload.sender, payload.receiver],
     });
+    // console.log(' exist nah');
     //@ts-ignore
     payload.chatId = chatList?._id;
   } else {
+    // console.log('already exist');
     //@ts-ignore
     payload.chatId = alreadyExists?._id;
   }
 
-console.log('payload==2', payload);
-  const result = await Message.create(payload);
-  console.log('result', result);
+
+
+  const result = await (await Message.create(payload)).populate([
+    {
+      path: 'sender',
+      select: 'name email image role _id phone',
+    },
+    {
+      path: 'receiver',
+      select: 'name email image role _id phone',
+    },
+  ]);
+  // console.log('result', result);
+
+
   if (!result) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Message creation failed');
   }
 
   if (io) {
-    console.log('socket hit hoise!')
     const senderMessage = 'new-message::' + result.chatId.toString();
-    console.log('senderMessage', senderMessage);
 
     io.emit(senderMessage, result);
 
-   
-    const ChatListSender = await chatService.getMyChatList(
-      result?.sender.toString(),
-    );
-    const ChatListReceiver = await chatService.getMyChatList(
-      result?.receiver.toString(),
-    );
+    // const ChatListSender = await chatService.getMyChatList(
+    //   result?.sender._id.toString(),
+    // );
+    // const ChatListReceiver = await chatService.getMyChatList(
+    //   result?.receiver._id.toString(),
+    // );
 
-    const senderChat = 'chat-list::' + result.sender.toString();
-    const receiverChat = 'chat-list::' + result.receiver.toString();
-    console.log('senderChat', senderChat);
-    console.log('receiverChat', receiverChat);
-    io.emit(receiverChat, ChatListSender);
-    io.emit(senderChat, ChatListReceiver);
+    // const senderChat = 'chat-list::' + result.sender._id.toString();
+    // const receiverChat = 'chat-list::' + result.receiver._id.toString();
+    // io.emit(receiverChat, ChatListSender);
+    // io.emit(senderChat, ChatListReceiver);
   }
 
   return result;
@@ -180,10 +203,10 @@ console.log('payload==2', payload);
 // Get all messages
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getAllMessages = async (query: Record<string, any>) => {
-  console.log('query===', query);
+  // console.log('query===', query);
 
   const chat = await Chat.findById(query.chatId);
-  console.log('chat', chat);
+  // console.log('chat', chat);
 
   if (!chat) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Chat is not found!!');
@@ -193,11 +216,11 @@ const getAllMessages = async (query: Record<string, any>) => {
     Message.find().populate([
       {
         path: 'sender',
-        select: 'name email image role _id phoneNumber ',
+        select: 'name email image role _id phone ',
       },
       {
         path: 'receiver',
-        select: 'name email image role _id phoneNumber ',
+        select: 'name email image role _id phone ',
       },
     ]),
     query,
@@ -207,8 +230,10 @@ const getAllMessages = async (query: Record<string, any>) => {
     .sort()
     .fields();
 
-    const message = await Message.find({chatId:query.chatId});
-    console.log('message', message);
+  const message = await Message.find({ chatId: query.chatId });
+  // console.log('message', message);
+  // const getAllMessages = 'all-message::' + chat._id.toString();
+  // io.emit(getAllMessages, message);
 
   const data = await MessageModel.modelQuery;
   const meta = await MessageModel.countTotal();
@@ -291,7 +316,7 @@ const seenMessage = async (userId: string, chatId: string) => {
   console.log('messageIdList', messageIdList);
   const unseenMessageIdList =
     messageIdList.length > 0 ? messageIdList[0].ids : [];
-console.log('unseenMessageIdList', unseenMessageIdList);
+  console.log('unseenMessageIdList', unseenMessageIdList);
   const updateMessages = await Message.updateMany(
     { _id: { $in: unseenMessageIdList } },
     { $set: { seen: true } },

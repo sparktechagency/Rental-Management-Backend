@@ -39,7 +39,7 @@ const getAllAnnouncementByLandlordByall = catchAsync(async (req, res) => {
 });
 
 const getAllAnnouncementByLandlord = catchAsync(async (req, res) => {
-  const propertyId = req.params.id
+  const propertyId = req.query.propertyId as string;
   const { meta, result } =
     await announcementService.getAllAnnouncementByLandlordUserByPropertyIdQuery(
       req.query,
@@ -68,10 +68,26 @@ const getSingleAnnouncement = catchAsync(async (req, res) => {
   });
 });
 
+const getSingleAnnouncementDeleted = catchAsync(async (req, res) => {
+  const { userId } = req.user;
+  const result = await announcementService.getSingleAnnouncementDeletedQuery(
+    req.params.id,
+    userId,
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    data: result,
+    message: 'Single Announcement deleted successful!!',
+  });
+});
+
 
 export const announcementController = {
   createAnnouncement,
   getAllAnnouncementByLandlordByall,
   getAllAnnouncementByLandlord,
   getSingleAnnouncement,
+  getSingleAnnouncementDeleted,
 };

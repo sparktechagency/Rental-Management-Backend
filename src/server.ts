@@ -2,59 +2,84 @@ import { createServer, Server } from 'http';
 import mongoose from 'mongoose';
 import app from './app';
 import socketIO from './socketio';
-import { Server as SocketIOServer } from 'socket.io'; // For better type safety
-import colors from 'colors'; // Ensure correct import
+import { Server as SocketIOServer } from 'socket.io'; 
+import colors from 'colors';
 import config from './app/config';
 
 let server: Server;
 const socketServer = createServer();
 
-// Initialize Socket.IO with type safety
 const io: SocketIOServer = new SocketIOServer(socketServer, {
   cors: {
     origin: '*',
   },
 });
 
+// async function main() {
+//   try {
+//     await mongoose.connect(config.database_url as string);
+//     server = app.listen(Number(config.port), () => {
+//       console.log(
+//         colors.green(`App is listening on ${config.ip}:${config.port}`).bold,
+//       );
+//     });
+
+//     socketServer.listen(config.socket_port || 6000, () => {
+//       console.log(
+//         colors.yellow(
+//           `Socket is listening on ${config.ip}:${config.socket_port}`,
+//         ).bold,
+//       );
+//     });
+
+//     socketIO(io);
+//     global.io = io;
+//   } catch (err) {
+//     console.error('Error starting the server:', err);
+//     process.exit(1);
+//   }
+// }
+
 async function main() {
   try {
-    // // console.log('config.database_url', config.database_url);
     // Connect to MongoDB
-    await mongoose.connect(config.database_url as string);
-    // await mongoose.connect(
-    //   'mongodb+srv://tiger:tiger@team-codecanyon.ffrshve.mongodb.net/pro-mentors?retryWrites=true&w=majority&appName=Team-CodeCanyon',
-    // );
+    await mongoose.connect(
+      `mongodb://${config.mongodbLive.database_user_name}:${config.mongodbLive.databse_user_password}@mongo:${config.mongodbLive.database_port}/${config.mongodbLive.database_name}?authSource=admin`,
+    );
 
-    // Start Express server
-    // server = app.listen(Number(config.port), config.ip as string, () => {
-    server = app.listen(Number(config.port), () => {
-      console.log(
-        colors.green(`App is listening on ${config.ip}:${config.port}`).bold,
-      );
+
+    // Create a single HTTP server from the Express app
+    server = createServer(app);
+
+    // Attach Socket.IO to the same HTTP server
+    const io: SocketIOServer = new SocketIOServer(server, {
+      cors: {
+        origin: '*',
+      },
     });
 
-    // Start Socket server
-    socketServer.listen(config.socket_port || 6000, () => {
+    // Start listening on the same port for both HTTP and WebSocket
+    server.listen(Number(config.port), () => {
       console.log(
-        colors.yellow(
-          `Socket is listening on ${config.ip}:${config.socket_port}`,
+        colors.green(
+          `Server (HTTP + Socket.IO) is running on ${config.ip}:${config.port}`,
         ).bold,
       );
     });
 
-    // Pass Socket.IO instance to socketIO module
+    // Initialize your Socket.IO handlers
     socketIO(io);
+
+    // Optionally make the socket server globally accessible
     global.io = io;
   } catch (err) {
     console.error('Error starting the server:', err);
-    // console.log(err);
-    process.exit(1); // Exit after error
+    process.exit(1);
   }
 }
 
-main();
 
-// Graceful shutdown for unhandled rejections
+main();
 process.on('unhandledRejection', (err) => {
   console.error(`Unhandled rejection detected: ${err}`);
   if (server) {
@@ -62,10 +87,9 @@ process.on('unhandledRejection', (err) => {
       process.exit(1);
     });
   }
-  process.exit(1); // Ensure process exits
+  process.exit(1); 
 });
 
-// Graceful shutdown for uncaught exceptions
 process.on('uncaughtException', (err) => {
   console.error(`Uncaught exception detected: ${err}`);
   if (server) {

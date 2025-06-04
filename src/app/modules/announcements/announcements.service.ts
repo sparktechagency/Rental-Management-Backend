@@ -34,23 +34,34 @@ const getAllAnnouncementByLandlordUserByPropertyIdQuery = async (
   query: Record<string, unknown>,
   propertyId: string,
 ) => {
-  const announcementQuery = new QueryBuilder(
-    Announcement.find({
-      propertyId,
+  const property = await Property.findById(propertyId);
+  if (property) {
+    const announcementQuery = new QueryBuilder(
+      Announcement.find({
+        propertyId,
 
-      //   isDeleted: false,
-    }),
-    query,
-  )
-    .search([''])
-    .filter()
-    .sort()
-    .paginate()
-    .fields();
+        //   isDeleted: false,
+      }),
+      query,
+    )
+      .search([''])
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
 
-  const result = await announcementQuery.modelQuery;
-  const meta = await announcementQuery.countTotal();
-  return { meta, result };
+    const result = await announcementQuery.modelQuery;
+    const meta = await announcementQuery.countTotal();
+    return { meta, result };
+  }else{
+    return { meta: {
+      page: 1,
+      limit: 10,
+      total: 0,
+      totalPage: 0
+    }, result: [] };
+  }
+  
 };
 
 const getAllAnnouncementByLandlordUserQuery = async (
@@ -82,8 +93,22 @@ const getSingleAnnouncementQuery = async (id: string) => {
   }
   const result = await Announcement.findById(id);
 
-  if (!Announcement) {
+  return result;
+};
+
+
+const getSingleAnnouncementDeletedQuery = async (
+  id: string,
+  landlordUserId: string,
+) => {
+  const announcement = await Announcement.findOne({ _id: id, landlordUserId });
+  if (!announcement) {
     throw new AppError(404, 'Announcement Not Found!!');
+  }
+  const result = await Announcement.findOneAndDelete({_id:id,landlordUserId});
+
+  if (!result) {
+    throw new AppError(403, 'Announcement Deleted Faild!!');
   }
 
   return result;
@@ -94,5 +119,6 @@ export const announcementService = {
   createAnnouncementService,
   getAllAnnouncementByLandlordUserByPropertyIdQuery,
   getAllAnnouncementByLandlordUserQuery,
-  getSingleAnnouncementQuery
+  getSingleAnnouncementQuery,
+  getSingleAnnouncementDeletedQuery,
 };

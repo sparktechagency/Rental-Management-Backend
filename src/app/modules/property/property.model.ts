@@ -6,7 +6,7 @@ const propertySchema = new Schema<TProperty>(
   {
     landlordUserId: {
       type: Schema.Types.ObjectId,
-      ref: 'Property',
+      ref: 'User',
       required: true,
     },
     name: {

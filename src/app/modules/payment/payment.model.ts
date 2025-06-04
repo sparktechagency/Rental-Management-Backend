@@ -5,9 +5,14 @@ import { TPayment } from './payment.interface';
 const paymentSchema = new Schema<TPayment>(
   {
     tenantUserId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    landlordUserId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
     method: {
       type: String,
-      enum: ['stripe'],
+      // enum: ['stripe'],
       required: true,
       default: 'stripe',
     },
@@ -17,7 +22,7 @@ const paymentSchema = new Schema<TPayment>(
     },
     adminChargeAmount: {
       type: Number,
-      required: true,
+      required: false,
     },
     status: {
       type: String,

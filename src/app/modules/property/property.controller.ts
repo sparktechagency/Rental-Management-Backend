@@ -10,13 +10,6 @@ const createProperty = catchAsync(async (req, res) => {
   const { userId } = req.user;
   // console.log({ userId });
   propertyData.landlordUserId = userId;
-  const isExist = await Property.findOne({
-    name: propertyData.name,
-  });
-  if (isExist) {
-    throw new AppError(400, 'Property is already exist !');
-  }
-  
   const imageFiles = req.files as {
     [fieldname: string]: Express.Multer.File[];
   };
@@ -124,11 +117,15 @@ const updateSingleProperty = catchAsync(async (req, res) => {
           file.path.replace(/^public[\\/]/, ''),
         );
       }
+      console.log('file property', imageFiles);
+      console.log('file property', imageFiles.propertyFiles);
      if (imageFiles?.propertyFiles && imageFiles.propertyFiles.length > 0) {
        updateData.propertyFiles = imageFiles.propertyFiles.map((file) =>
          file.path.replace(/^public[\\/]/, ''),
        );
      }
+
+     console.log('updateData', updateData);
 
       if (remainingImageUrl) {
         if (!updateData.images) {
@@ -156,7 +153,7 @@ const updateSingleProperty = catchAsync(async (req, res) => {
       }
 
 
-
+console.log('updateData==', updateData);
 
   const result = await propertyService.updatePropertyQuery(
     id,

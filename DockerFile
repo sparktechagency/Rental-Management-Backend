@@ -1,0 +1,9 @@
+from node:latest
+
+workdir /app
+
+copy . ./node
+
+# run npm install
+
+cmd ["npm", "start", "dev"],

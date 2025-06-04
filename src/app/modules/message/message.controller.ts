@@ -31,21 +31,25 @@ import { chatService } from '../chat/chat.service';
 // });
 
 const createMessages = catchAsync(async (req, res) => {
+  console.log('hit hoise')
+
+  console.log('token userId', req.user.userId);
   const id = `${Math.floor(100000 + Math.random() * 900000)}${Date.now()}`;
   req.body.id = id;
   req.body.sender = req.user.userId;
 
-  const updateFiles = req.files as {
-    [fieldname: string]: Express.Multer.File[];
-  };
+  // const updateFiles = req.files as {
+  //   [fieldname: string]: Express.Multer.File[];
+  // };
  
 
-   if (updateFiles.image && updateFiles.image.length > 0) {
-     req.body.image = updateFiles.image.map((file) => {
-       return file.path.replace(/^public[\\/]/, '');
-     });
-   }
+  //  if (updateFiles.image && updateFiles.image.length > 0) {
+  //    req.body.image = updateFiles.image.map((file) => {
+  //      return file.path.replace(/^public[\\/]/, '');
+  //    });
+  //  }
 
+   console.log('req.body===ssssss', req.body);
 
   const result = await messageService.createMessages(req.body);
 
@@ -64,7 +68,8 @@ const getAllMessages = catchAsync(async (req, res) => {
     statusCode: 200,
     success: true,
     message: 'Messages retrieved successfully',
-    data: result,
+    meta: result.meta,
+    data: result.data,
   });
 });
 

@@ -15,6 +15,7 @@ export interface TUserCreate {
   email: string;
   password: string;
   role: (typeof USER_ROLE)[keyof typeof USER_ROLE];
+  type: 'regular' | 'google' | 'apple';
   phone?: string;
   address?: string;
   dateOfBirth?: string;
@@ -22,7 +23,8 @@ export interface TUserCreate {
   emergencyContactPerson?: string;
   emergencyContactPersonNum?: string;
   additionalInfo?: string;
-  
+  loginId?: string;
+  paymentAccount: boolean;
 }
 
 export interface TUser extends TUserCreate {

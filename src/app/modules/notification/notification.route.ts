@@ -12,6 +12,12 @@ notificationRoutes.post(
   //   validateRequest(paymnetValidation),
   NotificationController.createNotification,
 );
+notificationRoutes.post(
+  '/all-read',
+  auth(USER_ROLE.TENANT, USER_ROLE.LANDLORD),
+  //   validateRequest(paymnetValidation),
+  NotificationController.getAllReadNotification,
+);
 
 notificationRoutes.get(
   '',
@@ -23,14 +29,24 @@ notificationRoutes.get(
   auth(USER_ROLE.ADMIN),
   NotificationController.getAllNotificationByAdmin,
 );
+notificationRoutes.get(
+  '/admin-all-announcement',
+  // auth(USER_ROLE.ADMIN),
+  NotificationController.getAllAnnouncementNotificationByAdmin,
+);
 notificationRoutes.get('/:id', NotificationController.getSingleNotification);
+notificationRoutes.patch(
+  '/read/:id',
+  auth(USER_ROLE.TENANT, USER_ROLE.LANDLORD),
+  NotificationController.getSingleReadNotification,
+);
 notificationRoutes.delete(
   '/:id',
   auth(USER_ROLE.TENANT, USER_ROLE.LANDLORD),
   NotificationController.deletedNotification,
 );
 notificationRoutes.delete(
-  '/admin/:id',
+  '/admin-announcement/:id',
   auth(USER_ROLE.ADMIN),
   NotificationController.deletedAdminNotification,
 );

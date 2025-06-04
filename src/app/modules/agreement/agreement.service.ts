@@ -6,6 +6,7 @@ import { TAgreement } from './agreement.interface';
 import InvitePeople from '../invitePeople/invitePeople.model';
 import Agreement from './agreement.model';
 import { appendFile } from 'fs';
+import Property from '../property/property.model';
 
 const createAgreementService = async (payload: TAgreement) => {
   const landlordUser = await User.findById(payload.landlordUserId);
@@ -83,12 +84,41 @@ const getSingleAgreementByInvitedPeopleQuery = async (id: string) => {
     throw new AppError(404, 'Invited people is Not Found!!');
   }
 
-  const agreement = await Agreement.findOne({ invitePeopleId :id});
+  const agreement = await Agreement.findOne({ invitePeopleId :id}).populate('invitePeopleId').populate('landlordUserId');
    if (!agreement) {
      throw new AppError(404, 'Agreement Not Found!!');
    }
 
   return agreement;
+};
+
+const getSingleRunningAgreementByPropertyIdQuery = async (id: string) => {
+  const property = await Property.findById(id);
+  if (!property) {
+    throw new AppError(404, 'Property is Not Found!!');
+  }   
+  const invited = await InvitePeople.findOne({
+    propertyId: id,
+    status: 'invited',
+    cancelStatus: { $in: ['pending', 'cancel_request'] },
+  });
+
+  console.log('invited-->', invited);
+  if (invited) {
+    const agreement = await Agreement.findOne({ invitePeopleId: invited._id })
+      .populate('invitePeopleId')
+      .populate('landlordUserId');
+    if (!agreement) {
+      throw new AppError(404, 'Agreement Not Found!!');
+    }
+    return agreement;
+  }else{
+    return 'running agreement not available';
+  }
+
+  
+
+
 };
 
 
@@ -109,6 +139,8 @@ const getSingleAgreementStatusByInvitedPeopleQuery = async (id: string) => {
 
 
 const updateSingleAgreementExtentRequestQuery = async (id: string, payload:any) => {
+  console.log('===>id', id);
+  console.log('===>payload', payload);
   if (!id) {
     throw new AppError(400, 'Invalid input parameters');
   }
@@ -117,6 +149,10 @@ const updateSingleAgreementExtentRequestQuery = async (id: string, payload:any) 
   if (!isExist) {
     throw new AppError(404, 'Agreement not found!');
   }
+  if (isExist.extentStatus === 'extend_date_requiest') {
+    throw new AppError(404, 'Agreement is already in the "extend_time_request" state.');
+  }
+
 
   payload.extentStartDate = isExist.endDate;
   console.log('payload', payload);
@@ -241,6 +277,7 @@ export const agreementService = {
   getAllAgreementByLandlordUserQuery,
   getSingleAgreementQuery,
   getSingleAgreementByInvitedPeopleQuery,
+  getSingleRunningAgreementByPropertyIdQuery,
   getSingleAgreementStatusByInvitedPeopleQuery,
   updateSingleAgreementExtentRequestQuery,
   updateSingleAgreementExtentRequestApprovedQuery,
