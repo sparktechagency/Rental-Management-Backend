@@ -13,6 +13,12 @@ const stripe = {
   stripe_api_key: process.env.STRIPE_API_KEY,
   stripe_api_secret: process.env.STRIPE_API_SECRET,
 };
+const mongodbLive = {
+  database_port: process.env.MONGODB_PORT,
+  database_name: process.env.DATABASE_NAME,
+  database_user_name: process.env.MONGODB_ADMINUSERNAME,
+  databse_user_password: process.env.MONGODB_ADMINPASSWORD
+};
 
 export default {
   NODE_ENV: process.env.NODE_ENV,
@@ -37,5 +43,6 @@ export default {
   aws,
   stripe,
   googleApiKey: process.env.GOOGLEAPI,
+  mongodbLive,
   // user_jwt_token: process.env.USER_JWT_TOKEN,
 };

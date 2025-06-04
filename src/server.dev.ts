@@ -43,10 +43,7 @@ const io: SocketIOServer = new SocketIOServer(socketServer, {
 async function main() {
   try {
     // Connect to MongoDB
-    await mongoose.connect(
-      `mongodb://${config.mongodbLive.database_user_name}:${config.mongodbLive.databse_user_password}@mongo:${config.mongodbLive.database_port}/${config.mongodbLive.database_name}?authSource=admin`,
-    );
-
+    await mongoose.connect(config.database_url as string);
 
     // Create a single HTTP server from the Express app
     server = createServer(app);

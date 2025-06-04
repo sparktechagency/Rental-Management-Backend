@@ -7,7 +7,7 @@ import settingsRouter from '../modules/settings/setting.route';
 import notificationRoutes from '../modules/notification/notification.route';
 import paymentRouter from '../modules/payment/payment.route';
 // import walletRouter from '../modules/wallet/wallet.route';
-import withdrawRouter from '../modules/withdraw/withdraw.route';
+// import withdrawRouter from '../modules/withdraw/withdraw.route';
 import reviewRouter from '../modules/ratings/ratings.route';
 import faqRouter from '../modules/faq/faq.route';
 import propertyRouter from '../modules/property/property.route';
@@ -53,10 +53,10 @@ const moduleRoutes = [
     path: '/payment',
     route: paymentRouter,
   },
-  {
-    path: '/withdraw',
-    route: withdrawRouter,
-  },
+  // {
+  //   path: '/withdraw',
+  //   route: withdrawRouter,
+  // },
 
   {
     path: '/review',

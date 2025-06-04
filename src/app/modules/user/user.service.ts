@@ -223,7 +223,7 @@ const createAdmin = async (payload: any) => {
     password: payload.password,
     email: payload.email,
     fullName: payload.fullName,
-    role:"admin",
+    role:payload.role,
   };
 
   const user = await User.create(userData);
