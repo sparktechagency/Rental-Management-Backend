@@ -18,7 +18,7 @@ import maintenanceRouter from '../modules/maintenance/maintenance.route';
 import adminAnnouncementsRouter from '../modules/admin.announcements/admin.announcements.route';
 import chatRouter from '../modules/chat/chat.route';
 import messageRouter from '../modules/message/message.route';
-import offlinePaymentRouter from '../offlinePayment/offlinePayment.route';
+import offlinePaymentRouter from '../modules/offlinePayment/offlinePayment.route';
 import rentDueRouter from '../modules/rentDue/rentDue.route';
 
 const router = Router();

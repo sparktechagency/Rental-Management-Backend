@@ -15,30 +15,66 @@ const io: SocketIOServer = new SocketIOServer(socketServer, {
   },
 });
 
+// async function main() {
+//   try {
+//     await mongoose.connect(config.database_url as string);
+//     server = app.listen(Number(config.port), () => {
+//       console.log(
+//         colors.green(`App is listening on ${config.ip}:${config.port}`).bold,
+//       );
+//     });
+
+//     socketServer.listen(config.socket_port || 6000, () => {
+//       console.log(
+//         colors.yellow(
+//           `Socket is listening on ${config.ip}:${config.socket_port}`,
+//         ).bold,
+//       );
+//     });
+
+//     socketIO(io);
+//     global.io = io;
+//   } catch (err) {
+//     console.error('Error starting the server:', err);
+//     process.exit(1);
+//   }
+// }
+
 async function main() {
   try {
+    // Connect to MongoDB
     await mongoose.connect(config.database_url as string);
-    server = app.listen(Number(config.port), () => {
-      console.log(
-        colors.green(`App is listening on ${config.ip}:${config.port}`).bold,
-      );
+
+    // Create a single HTTP server from the Express app
+    server = createServer(app);
+
+    // Attach Socket.IO to the same HTTP server
+    const io: SocketIOServer = new SocketIOServer(server, {
+      cors: {
+        origin: '*',
+      },
     });
 
-    socketServer.listen(config.socket_port || 6000, () => {
+    // Start listening on the same port for both HTTP and WebSocket
+    server.listen(Number(config.port), () => {
       console.log(
-        colors.yellow(
-          `Socket is listening on ${config.ip}:${config.socket_port}`,
+        colors.green(
+          `Server (HTTP + Socket.IO) is running on ${config.ip}:${config.port}`,
         ).bold,
       );
     });
 
+    // Initialize your Socket.IO handlers
     socketIO(io);
+
+    // Optionally make the socket server globally accessible
     global.io = io;
   } catch (err) {
     console.error('Error starting the server:', err);
     process.exit(1);
   }
 }
+
 
 main();
 process.on('unhandledRejection', (err) => {

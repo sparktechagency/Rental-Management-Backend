@@ -1,15 +1,14 @@
-import mongoose from "mongoose";
-import QueryBuilder from "../builder/QueryBuilder";
-import AppError from "../error/AppError";
-import InvitePeople from "../modules/invitePeople/invitePeople.model";
-import { invitePeopleService } from "../modules/invitePeople/invitePeople.service";
-import { Payment } from "../modules/payment/payment.model";
-import Property from "../modules/property/property.model";
-import { duePaymentService } from "../modules/rentDue/rentDue.service";
-import { User } from "../modules/user/user.models";
-import { TOfflinePayment } from "./offlinePayment.interface";
-import OfflinePayment from "./offlinePayment.model";
-
+import mongoose from 'mongoose';
+import QueryBuilder from '../../builder/QueryBuilder';
+import AppError from '../../error/AppError';
+import InvitePeople from '../invitePeople/invitePeople.model';
+import { invitePeopleService } from '../invitePeople/invitePeople.service';
+import { Payment } from '../payment/payment.model';
+import Property from '../property/property.model';
+import { duePaymentService } from '../rentDue/rentDue.service';
+import { User } from '../user/user.models';
+import { TOfflinePayment } from './offlinePayment.interface';
+import OfflinePayment from './offlinePayment.model';
 
 const createOfflinePaymentService = async (payload: TOfflinePayment) => {
   const landlordUser = await User.findById(payload.landlordUserId);
@@ -31,8 +30,8 @@ const createOfflinePaymentService = async (payload: TOfflinePayment) => {
   }
 
   const isExistSameTransactionId = await OfflinePayment.findOne({
-    transactionId: payload.transactionId
-  })
+    transactionId: payload.transactionId,
+  });
 
   if (isExistSameTransactionId) {
     throw new AppError(404, 'Transaction Id already exist!!');
@@ -50,21 +49,21 @@ const getAllOfflinePaymentByLandlordUserByPropertyIdQuery = async (
   query: Record<string, unknown>,
   userId: string,
 ) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new AppError(404, 'User Not Found!!');
+  }
 
-    const user = await User.findById(userId);
-    if (!user) {
-      throw new AppError(404, 'User Not Found!!');
-    }
+  const userField = user.role === 'tenant' ? 'tenantUserId' : 'landlordUserId';
 
-    const userField =
-      user.role === 'tenant' ? 'tenantUserId' : 'landlordUserId';
-
-// console.log('user id ', userField);
+  // console.log('user id ', userField);
 
   const OfflinePaymentQuery = new QueryBuilder(
     OfflinePayment.find({
       [userField]: userId,
-    }).populate('tenantUserId').populate('landlordUserId'),
+    })
+      .populate('tenantUserId')
+      .populate('landlordUserId'),
     query,
   )
     .search([''])
@@ -78,36 +77,30 @@ const getAllOfflinePaymentByLandlordUserByPropertyIdQuery = async (
   return { meta, result };
 };
 
-
-const getAllOfflinePaymentReceptByTenTenantQuery = async (
-  userId: string,
-) => {
+const getAllOfflinePaymentReceptByTenTenantQuery = async (userId: string) => {
   const user = await User.findById(userId);
   if (!user) {
     throw new AppError(404, 'User Not Found!!');
   }
 
-const result = await OfflinePayment.findOne({
-  tenantUserId: userId
-})
-  .sort({ createdAt: -1 })
-  .populate('tenantUserId')
-  .populate('landlordUserId');
-if (!result) {
-  throw new AppError(404, 'OfflinePayment Not Found!!');
-}
-return result;
-  
+  const result = await OfflinePayment.findOne({
+    tenantUserId: userId,
+  })
+    .sort({ createdAt: -1 })
+    .populate('tenantUserId')
+    .populate('landlordUserId');
+  if (!result) {
+    throw new AppError(404, 'OfflinePayment Not Found!!');
+  }
+  return result;
 };
-
-
 
 const getSingleOfflinePaymentQuery = async (id: string) => {
   const offlinePayment = await OfflinePayment.findById(id);
   if (!offlinePayment) {
     throw new AppError(404, 'OfflinePayment Not Found!!');
   }
- 
+
   return offlinePayment;
 };
 
@@ -135,7 +128,6 @@ const getSingleOfflinePaymentQuery = async (id: string) => {
 //       throw new AppError(404, 'Running property  Not Found!!');
 //     }
 
-
 //   const result = await OfflinePayment.findOneAndUpdate( {_id:id, landlordUserId},{
 //     status: 'accepted'
 //   });
@@ -157,7 +149,6 @@ const getSingleOfflinePaymentQuery = async (id: string) => {
 
 //   }
 
-
 //  const deuAmount =
 //    await invitePeopleService.getRuningInviteTenantPropertyDeuQuery(
 //      offlinePayment.tenantUserId
@@ -177,8 +168,6 @@ const getSingleOfflinePaymentQuery = async (id: string) => {
 //        throw new AppError(403, 'Due Payment is Faild!!');
 //      }
 
-
- 
 //   if (!result) {
 //     throw new AppError(403, 'OfflinePayment Deleted Faild!!');
 //   }
@@ -247,7 +236,7 @@ const singleOfflinePaymentAcceptQuery = async (
         offlinePayment.tenantUserId,
       );
 
-      console.log('dueAmount==', dueAmount);
+    console.log('dueAmount==', dueAmount);
 
     const dueAmountCreateData: any = {
       tenantUserId: offlinePayment.tenantUserId,
@@ -258,7 +247,7 @@ const singleOfflinePaymentAcceptQuery = async (
     console.log('dueAmountCreateData', dueAmountCreateData);
     const dueAmountCreate = await duePaymentService.createDuePaymentService(
       dueAmountCreateData,
-       session ,
+      session,
     );
     console.log('dueAmountCreate', dueAmountCreate);
 
@@ -276,8 +265,6 @@ const singleOfflinePaymentAcceptQuery = async (
     session.endSession();
   }
 };
-
-
 
 export const offlinePaymentService = {
   createOfflinePaymentService,

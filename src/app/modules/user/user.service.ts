@@ -200,6 +200,66 @@ const otpVerifyAndCreateUser = async ({
 };
 
 
+const createAdmin = async (payload: any) => {
+
+ 
+
+  const isExist = await User.isUserExist(payload.email as string);
+
+  if (isExist) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'User already exists with this email',
+    );
+  }
+  if (!payload.email || !payload.password || !payload.fullName) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'Email, password and fullName are required',
+    );
+  }
+
+  const userData = {
+    password: payload.password,
+    email: payload.email,
+    fullName: payload.fullName,
+    role:"admin",
+  };
+
+  const user = await User.create(userData);
+
+  if (!user) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'User creation failed');
+  }
+
+  // const jwtPayload: {
+  //   userId: string;
+  //   role: string;
+  //   fullName: string;
+  //   email: string;
+  // } = {
+  //   fullName: user?.fullName,
+  //   email: user.email,
+  //   userId: user?._id?.toString() as string,
+  //   role: user?.role,
+  // };
+
+  // const userToken = createToken({
+  //   payload: jwtPayload,
+  //   access_secret: config.jwt_access_secret as string,
+  //   expity_time: config.jwt_access_expires_in as string | number,
+  // });
+
+  // const refreshToken = createToken({
+  //   payload: jwtPayload,
+  //   access_secret: config.jwt_refresh_secret as string,
+  //   expity_time: config.jwt_refresh_expires_in as string,
+  // });
+
+  return user;
+};
+
+
 const googleLogin = async (payload: any) => {
 
   if (!payload?.email || !payload?.googleId || !payload?.role) {
@@ -675,11 +735,24 @@ const deleteMyAccount = async (id: string, payload: DeleteAccountPayload) => {
   return userDeleted;
 };
 
-const blockedUser = async (id: string) => {
+const blockedUser = async (id: string, userId: string) => {
   const existUser: TUser | null = await User.findById(id);
 
   if (!existUser) {
     throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+  }
+
+  const blocker: TUser | null = await User.findById(userId);
+
+  if (!blocker) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Admin not found');
+  }
+
+  if (existUser.role === blocker.role) {
+    throw new AppError(httpStatus.FORBIDDEN, 'You cannot block this Person!!');
+  }
+  if (existUser.role === 'super_admin') {
+    throw new AppError(httpStatus.FORBIDDEN, 'You cannot block this Person!!');
   }
 
   const blockUnblockSwich = existUser.isActive ? false : true;
@@ -701,6 +774,7 @@ const blockedUser = async (id: string) => {
 export const userService = {
   createUserToken,
   otpVerifyAndCreateUser,
+  createAdmin,
   // userSwichRoleService,
   googleLogin,
   appleLogin,

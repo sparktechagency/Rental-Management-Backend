@@ -117,11 +117,15 @@ const updateSingleProperty = catchAsync(async (req, res) => {
           file.path.replace(/^public[\\/]/, ''),
         );
       }
+      console.log('file property', imageFiles);
+      console.log('file property', imageFiles.propertyFiles);
      if (imageFiles?.propertyFiles && imageFiles.propertyFiles.length > 0) {
        updateData.propertyFiles = imageFiles.propertyFiles.map((file) =>
          file.path.replace(/^public[\\/]/, ''),
        );
      }
+
+     console.log('updateData', updateData);
 
       if (remainingImageUrl) {
         if (!updateData.images) {
@@ -149,7 +153,7 @@ const updateSingleProperty = catchAsync(async (req, res) => {
       }
 
 
-
+console.log('updateData==', updateData);
 
   const result = await propertyService.updatePropertyQuery(
     id,

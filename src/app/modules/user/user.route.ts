@@ -22,6 +22,11 @@ userRoutes
     validateRequest(resentOtpValidations.verifyOtpZodSchema),
     userController.userCreateVarification,
   )
+  .post(
+    '/create-admin',
+    auth(USER_ROLE.SUPER_ADMIN),
+    userController.createAdmin,
+  )
 
   .post('/google-login', userController.googleLogin)
   .post('/apple-login', userController.appleLogin)

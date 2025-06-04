@@ -24,6 +24,7 @@ export interface TUserCreate {
   emergencyContactPersonNum?: string;
   additionalInfo?: string;
   loginId?: string;
+  paymentAccount: boolean;
 }
 
 export interface TUser extends TUserCreate {

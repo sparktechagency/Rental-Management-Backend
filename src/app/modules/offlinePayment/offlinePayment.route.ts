@@ -1,8 +1,8 @@
 import express from 'express';
-import auth from '../middleware/auth';
-import { USER_ROLE } from '../modules/user/user.constants';
+import auth from '../../middleware/auth';
+import { USER_ROLE } from '../user/user.constants';
 import { OfflinePaymentController } from './offlinePayment.controller';
-import fileUpload from '../middleware/fileUpload';
+import fileUpload from '../../middleware/fileUpload';
 
 const offlinePaymentRouter = express.Router();
 const upload = fileUpload('./public/uploads/offlinePayment');

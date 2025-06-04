@@ -73,6 +73,19 @@ const getSingleAgreementByInvitedPeople = catchAsync(async (req, res) => {
   });
 });
 
+const getSingleRunningAgreementByPropertyId = catchAsync(async (req, res) => {
+  const result = await agreementService.getSingleRunningAgreementByPropertyIdQuery(
+    req.params.id,
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    data: result,
+    message: 'Single get RunningAgreement by Property successful!!',
+  });
+});
+
 
 const getSingleAgreementStatusByInvitedPeople = catchAsync(async (req, res) => {
   const result =
@@ -141,6 +154,7 @@ export const agreementController = {
   getAllAgreementByLandlord,
   getSingleAgreement,
   getSingleAgreementByInvitedPeople,
+  getSingleRunningAgreementByPropertyId,
   getSingleAgreementStatusByInvitedPeople,
   updateSingleAgreementExtentRequest,
   updateSingleAgreementExtentRequestApproved,

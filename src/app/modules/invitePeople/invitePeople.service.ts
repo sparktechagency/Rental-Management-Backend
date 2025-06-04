@@ -10,7 +10,7 @@ import { Payment } from '../payment/payment.model';
 import { sendEmail } from '../../utils/mailSender';
 import Maintenance from '../maintenance/maintenance.model';
 import Announcement from '../announcements/announcements.model';
-import OfflinePayment from '../../offlinePayment/offlinePayment.model';
+import OfflinePayment from '../offlinePayment/offlinePayment.model';
 import DuePayment from '../rentDue/rentDue.model';
 import Chat from '../chat/chat.model';
 
@@ -59,10 +59,86 @@ const createInvitePeopleService = async (payload: TInvitePeople) => {
     throw new AppError(403, 'InvitePeople create is faild!!');
   }
   if (result) {
-      await Chat.create({
-       participants: [result.landlordUserId, result.tenantUserId],
-     });
+    await Chat.create({
+      participants: [result.landlordUserId, result.tenantUserId],
+    });
   }
+  return result;
+};
+
+
+const leaveRequestTenant = async (userId: string) => {
+  const tenant = await User.findById(userId);
+  if (!tenant) {
+    throw new AppError(404, 'Tenant User Not Found!!');
+  }
+ 
+  const runninginvitePeople = await InvitePeople.findOne({
+    tenantUserId: userId,
+    status: 'invited',
+    cancelStatus: { $in: ['cancel_request', 'pending'] },
+  });
+
+  if (!runninginvitePeople) {
+    throw new AppError(404, 'Running InvitePeople Not Found!!');
+  }
+
+  const result = await InvitePeople.findOneAndUpdate(
+    {
+      _id: runninginvitePeople._id,
+      tenantUserId: userId,
+    },
+    {
+      $set: {
+        cancelStatus: 'cancel_request',
+      },
+    },
+    { new: true },
+  );
+  
+  if (!result) {
+    throw new AppError(404, 'Running InvitePeople Not Found!!');
+  }
+
+  return result;
+};
+
+
+const accpetleaveRequestByLandloard = async (landlordUserId: string, id: string) => {
+  const landlord = await User.findById(landlordUserId);
+  if (!landlord) {
+    throw new AppError(404, 'Landlord User Not Found!!');
+  }
+ 
+  const runninginvitePeople = await InvitePeople.findOne({
+    _id: id,
+    landlordUserId: landlordUserId,
+    status: 'invited',
+    cancelStatus: 'cancel_request',
+  });
+
+  if (!runninginvitePeople) {
+    throw new AppError(404, 'Running InvitePeople Not Found!!');
+  }
+
+  const result = await InvitePeople.findOneAndUpdate(
+    {
+      _id: runninginvitePeople._id,
+      landlordUserId: landlordUserId,
+    },
+    {
+      $set: {
+        cancelStatus: 'conform',
+      },
+    },
+    { new: true },
+  );
+  
+  if (!result) {
+    throw new AppError(404, 'Running InvitePeople Not Found!!');
+  }
+
+ 
   return result;
 };
 
@@ -140,25 +216,24 @@ const getSingleInvitePeopleQuery = async (id: string) => {
   return result;
 };
 
-
 const getSingleInvitePeopleByPropertyIdQuery = async (id: string) => {
   const property = await Property.findById(id);
   if (!property) {
     throw new AppError(404, 'Property is Not Found!!');
   }
-  const result = await InvitePeople.findOne({ propertyId: id  }).populate('tenantUserId').populate('landlordUserId').populate('propertyId');
+  const result = await InvitePeople.findOne({ propertyId: id })
+    .populate('tenantUserId')
+    .populate('landlordUserId')
+    .populate('propertyId');
 
-    console.log('result', result);
+  console.log('result', result);
 
   if (!result) {
- 
-    return "Invited people not available!!";
-  }else{
+    return 'Invited people not available!!';
+  } else {
     return result;
   }
-
 };
-
 
 const getCurrentInvitedTenant = async (tenantUserId: string) => {
   const user = await User.findById(tenantUserId);
@@ -175,7 +250,7 @@ const getCurrentInvitedTenant = async (tenantUserId: string) => {
 
   // console.log('result', result);
 
-   if (result) {
+  if (result) {
     const agreement = await Agreement.findOne({ invitePeopleId: result._id });
 
     const newResult = {
@@ -186,16 +261,12 @@ const getCurrentInvitedTenant = async (tenantUserId: string) => {
     console.log('bala', newResult);
 
     return newResult;
-  }else{
+  } else {
     return {};
   }
-
-
- 
 };
 
 // const getRuningInviteTenantPropertyDeuQuery = async (tenantUserId: string, session?: any) => {
-
 
 //   const invitePeople = await InvitePeople.findOne({ tenantUserId });
 //   if (!invitePeople) {
@@ -269,8 +340,6 @@ const getCurrentInvitedTenant = async (tenantUserId: string) => {
 //   return remainingAmount ? remainingAmount : 0;
 // };
 
-
-
 const getRuningInviteTenantPropertyDeuQuery = async (
   tenantUserId: string,
   session?: any,
@@ -289,7 +358,7 @@ const getRuningInviteTenantPropertyDeuQuery = async (
     //   throw new AppError(404, 'InvitePeople Not Found!!');
     // }
 
-    const runninginvitePeople:any = await InvitePeople.findOne({
+    const runninginvitePeople: any = await InvitePeople.findOne({
       tenantUserId,
       status: 'invited',
       cancelStatus: { $in: ['cancel_request', 'pending'] },
@@ -298,8 +367,6 @@ const getRuningInviteTenantPropertyDeuQuery = async (
     const agreement: any = await Agreement.findOne({
       invitePeopleId: runninginvitePeople?._id,
     }).session(mongoSession);
-
-
 
     if (runninginvitePeople && agreement) {
       const currentDate = new Date();
@@ -391,14 +458,7 @@ const getRuningInviteTenantPropertyDeuQuery = async (
       };
     }
 
-   
-    
-
-    
-
     if (!session) await mongoSession.commitTransaction();
-
-    
   } catch (error) {
     if (!session) await mongoSession.abortTransaction();
     throw error;
@@ -406,13 +466,9 @@ const getRuningInviteTenantPropertyDeuQuery = async (
     if (!session) mongoSession.endSession();
   }
 
- 
-// console.log('remainingAmount', remainingAmount);
-//   return remainingAmount ? remainingAmount : 0;
-
+  // console.log('remainingAmount', remainingAmount);
+  //   return remainingAmount ? remainingAmount : 0;
 };
-
-
 
 const getRuningOverviewLandlordQuery = async (landlordUserId: string) => {
   const property = await Property.countDocuments({ landlordUserId });
@@ -523,45 +579,40 @@ const getRuningOverviewLandlordQuery = async (landlordUserId: string) => {
     },
   ]);
 
-
-
-  
-
   return {
     property,
-    tenant:runninginvitePeople,
-    maintenance:maintenanceRequest[0],
-    totalEarning:allPayment[0]?.totalLandlordPayment ? allPayment[0]?.totalLandlordPayment : 0,
+    tenant: runninginvitePeople,
+    maintenance: maintenanceRequest[0],
+    totalEarning: allPayment[0]?.totalLandlordPayment
+      ? allPayment[0]?.totalLandlordPayment
+      : 0,
   };
 };
 
-
 const getRuningCalendarInfoByTenantQuery = async (tenantUserId: string) => {
-
   const payment = await Payment.find({
     tenantUserId,
     status: 'paid',
   });
-  
-   const formattedPayment = payment.map((item: any) => ({
-     title: 'Rent Payment Received!',
-     subTitle: "Your property's rent payment has been received successfully.",
-     status: 'payment',
-     date: item.createdAt,
-   }));
 
-    const duePayment = await DuePayment.find({
-      tenantUserId,
-    });
+  const formattedPayment = payment.map((item: any) => ({
+    title: 'Rent Payment Received!',
+    subTitle: "Your property's rent payment has been received successfully.",
+    status: 'payment',
+    date: item.createdAt,
+  }));
 
-    const formattedDuePayment = duePayment.map((item: any) => ({
-      title: 'Rent Due Received!',
-      subTitle: "Your property's due payment has been received successfully.",
-      status: 'duePayment',
-      date: item.createdAt,
-    }));
+  const duePayment = await DuePayment.find({
+    tenantUserId,
+  });
 
-    
+  const formattedDuePayment = duePayment.map((item: any) => ({
+    title: 'Rent Due Received!',
+    subTitle: "Your property's due payment has been received successfully.",
+    status: 'duePayment',
+    date: item.createdAt,
+  }));
+
   const offlineReceipts = await OfflinePayment.find({
     tenantUserId,
   });
@@ -576,9 +627,8 @@ const getRuningCalendarInfoByTenantQuery = async (tenantUserId: string) => {
   console.log('formattedOfflineReceipt', formattedOfflineReceipt);
 
   const user = await User.findById(tenantUserId);
-let formattedAnnouncement;
-  if(user){
-    
+  let formattedAnnouncement;
+  if (user) {
     const runninginvitePeople = await InvitePeople.findOne({
       tenantUserId,
       status: 'invited',
@@ -591,46 +641,36 @@ let formattedAnnouncement;
 
     // console.log('annauncement==', annauncement);
 
-     formattedAnnouncement = annauncement.map((item: any) => ({
+    formattedAnnouncement = annauncement.map((item: any) => ({
       title: 'Announcement by Landlord',
       subTitle: item.description,
       status: 'announcement',
       date: item.createdAt,
     }));
     console.log('formattedAnnouncement', formattedAnnouncement);
-
-    
   }
 
   const output = [
     ...formattedPayment,
     ...formattedDuePayment,
     ...formattedOfflineReceipt,
-    ...formattedAnnouncement ? formattedAnnouncement : [],
+    ...(formattedAnnouncement ? formattedAnnouncement : []),
   ];
   //  console.log('output', output);
 
-   // return { payment, agreement, annauncement };
-   return output;
-
-
+  // return { payment, agreement, annauncement };
+  return output;
 };
 
-
 const getRuningCalendarInfoByLandlordQuery = async (landlordUserId: string) => {
-
   const landlord = await User.findById(landlordUserId);
   if (!landlord) {
     throw new AppError(404, 'Landlord Not Found!!');
   }
-  
-  
-
 
   const payment = await Payment.find({
     landlordUserId,
     status: 'paid',
-
   });
 
   const formattedPayment = payment.map((item: any) => ({
@@ -642,7 +682,6 @@ const getRuningCalendarInfoByLandlordQuery = async (landlordUserId: string) => {
 
   const duePayment = await DuePayment.find({
     landlordUserId,
-
   });
 
   const formattedDuePayment = duePayment.map((item: any) => ({
@@ -652,19 +691,18 @@ const getRuningCalendarInfoByLandlordQuery = async (landlordUserId: string) => {
     date: item.createdAt,
   }));
 
-
   const offlineReceipts = await OfflinePayment.find({
     landlordUserId,
   });
 
-   const formattedOfflineReceipt = offlineReceipts.map((item: any) => ({
-     title: 'Offline Receipt Submitted!',
-     subTitle: "Your property's offline receipt has been submitted successfully.",
-     status: 'offlineReceipt',
-     date: item.createdAt,
-   }));
-   console.log('formattedOfflineReceipt', formattedOfflineReceipt);
-
+  const formattedOfflineReceipt = offlineReceipts.map((item: any) => ({
+    title: 'Offline Receipt Submitted!',
+    subTitle:
+      "Your property's offline receipt has been submitted successfully.",
+    status: 'offlineReceipt',
+    date: item.createdAt,
+  }));
+  console.log('formattedOfflineReceipt', formattedOfflineReceipt);
 
   const annauncement = await Announcement.find({
     landlordUserId,
@@ -672,15 +710,14 @@ const getRuningCalendarInfoByLandlordQuery = async (landlordUserId: string) => {
 
   // console.log('annauncement==', annauncement);
 
-   const formattedAnnouncement = annauncement.map((item: any) => ({
-     title: 'Announcement by Landlord',
-     subTitle: item.description,
-     status: 'announcement',
-     date: item.createdAt,
-   }));
-   console.log('formattedAnnouncement', formattedAnnouncement);
+  const formattedAnnouncement = annauncement.map((item: any) => ({
+    title: 'Announcement by Landlord',
+    subTitle: item.description,
+    status: 'announcement',
+    date: item.createdAt,
+  }));
+  console.log('formattedAnnouncement', formattedAnnouncement);
 
-    
   const output = [
     ...formattedPayment,
     ...formattedDuePayment,
@@ -693,8 +730,6 @@ const getRuningCalendarInfoByLandlordQuery = async (landlordUserId: string) => {
   // return { payment, agreement, annauncement };
   return output;
 };
-
-      
 
 const getSingleInvitePeopleAcceptQuery = async (id: string, userId: string) => {
   if (!id) {
@@ -764,8 +799,10 @@ const getSingleInvitePeopleAcceptQuery = async (id: string, userId: string) => {
   return result;
 };
 
-
-const updateSingleInvitePeopleVerifyQuery = async (id: string, userId: string) => {
+const updateSingleInvitePeopleVerifyQuery = async (
+  id: string,
+  userId: string,
+) => {
   if (!id) {
     throw new AppError(400, 'Invalid input parameters');
   }
@@ -778,15 +815,13 @@ const updateSingleInvitePeopleVerifyQuery = async (id: string, userId: string) =
     throw new AppError(404, 'You are not valid landlord User!');
   }
 
-   if (isExist.status === 'invited') {
-     throw new AppError(404, 'Tenant is already Verified!!');
-   }
+  if (isExist.status === 'invited') {
+    throw new AppError(404, 'Tenant is already Verified!!');
+  }
 
   if (isExist.status !== 'request_accept_verify') {
     throw new AppError(404, 'This is not valid action!!');
   }
-
- 
 
   const result = await InvitePeople.findByIdAndUpdate(
     id,
@@ -844,43 +879,40 @@ const updateSingleInvitePeopleVerifyQuery = async (id: string, userId: string) =
   return result;
 };
 
-const deletedInvitePeopleQuery = async (id: string, userId: string) => {
-  //   if (!id || !userId) {
-  //     throw new AppError(400, 'Invalid input parameters');
-  //   }
-  //   const isExist = await InvitePeople.findById(id);
-  //   if (!isExist) {
-  //     throw new AppError(404, 'InvitePeople not found!');
-  //   }
-  //   const userExist = await User.findById(userId);
-  //   if (!userExist) {
-  //     throw new AppError(404, 'User not found!');
-  //   }
-  // if (userExist.role !== 'tenant' && userExist.role !== 'landlord') {
-  //   throw new AppError(403, 'You are not authorized to delete this!');
-  // }
-  //   const varifyLandlord = await InvitePeople.findOne({
-  //     _id: id,
-  //     cancelStatus: 'conform',
-  //   });
-  //   if (!varifyLandlord) {
-  //     throw new AppError(404, 'You can not deleted it!!');
-  //   }
-  //   const result = await InvitePeople.findByIdAndUpdate(
-  //     id,
-  //     {
-  //       isDeleted: true,
-  //     },
-  //     { new: true },
-  //   );
-  //   if (!result) {
-  //     throw new AppError(404, 'InvitePeople Deleted Faild!!');
-  //   }
-  //   return result;
+const deletedInvitePeopleQuery = async (id: string) => {
+    if (!id ) {
+      throw new AppError(400, 'Invalid input parameters');
+    }
+    const isExist = await InvitePeople.findById(id);
+    if (!isExist) {
+      throw new AppError(404, 'InvitePeople not found!');
+    }
+ 
+    const varifyLandlord = await InvitePeople.findOne({
+      _id: id,
+      cancelStatus: 'conform',
+    });
+    if (!varifyLandlord) {
+      throw new AppError(404, 'Already Deleted!!');
+    }
+    const result = await InvitePeople.findByIdAndUpdate(
+      id,
+      {
+        cancelStatus: 'conform',
+      },
+      { new: true },
+    );
+    if (!result) {
+      throw new AppError(404, 'InvitePeople Deleted Faild!!');
+    }
+    return result;
 };
 
 export const invitePeopleService = {
   createInvitePeopleService,
+  leaveRequestTenant,
+  accpetleaveRequestByLandloard,
+  deletedInvitePeopleQuery,
   getAllInvitePeopleByLandlordByTenantAndTenantByLandlord,
   // getAllInvitePeopleByTenantUserQuery,
   getSingleInvitePeopleQuery,
@@ -891,6 +923,5 @@ export const invitePeopleService = {
   getRuningCalendarInfoByTenantQuery,
   getRuningCalendarInfoByLandlordQuery,
   updateSingleInvitePeopleVerifyQuery,
-  getSingleInvitePeopleAcceptQuery,
-  deletedInvitePeopleQuery,
+  getSingleInvitePeopleAcceptQuery
 };

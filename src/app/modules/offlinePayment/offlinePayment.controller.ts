@@ -1,8 +1,7 @@
-import httpStatus from "http-status";
-import catchAsync from "../utils/catchAsync";
-import sendResponse from "../utils/sendResponse";
-import { offlinePaymentService } from "./offlinePayment.service";
-
+import httpStatus from 'http-status';
+import catchAsync from '../../utils/catchAsync';
+import sendResponse from '../../utils/sendResponse';
+import { offlinePaymentService } from './offlinePayment.service';
 
 const createOfflinePayment = catchAsync(async (req, res) => {
   const offlinePaymentData = req.body;
@@ -10,15 +9,15 @@ const createOfflinePayment = catchAsync(async (req, res) => {
   offlinePaymentData.tenantUserId = userId;
   offlinePaymentData.amount = Number(offlinePaymentData.amount);
 
-   const imageFiles = req.files as {
-     [fieldname: string]: Express.Multer.File[];
-   };
+  const imageFiles = req.files as {
+    [fieldname: string]: Express.Multer.File[];
+  };
 
-   if (imageFiles?.images && imageFiles.images.length > 0) {
-     offlinePaymentData.images = imageFiles.images.map((file) =>
-       file.path.replace(/^public[\\/]/, ''),
-     );
-   }
+  if (imageFiles?.images && imageFiles.images.length > 0) {
+    offlinePaymentData.images = imageFiles.images.map((file) =>
+      file.path.replace(/^public[\\/]/, ''),
+    );
+  }
 
   const result =
     await offlinePaymentService.createOfflinePaymentService(offlinePaymentData);
@@ -51,11 +50,10 @@ const getAllOfflinePaymentByLandlordUserByPropertyId = catchAsync(
   },
 );
 
-
 const getAllOfflinePaymentCurrentReceptBytenTenant = catchAsync(
   async (req, res) => {
     const { userId } = req.user;
-    const  result=
+    const result =
       await offlinePaymentService.getAllOfflinePaymentReceptByTenTenantQuery(
         userId,
       );
@@ -68,8 +66,6 @@ const getAllOfflinePaymentCurrentReceptBytenTenant = catchAsync(
     });
   },
 );
-
-
 
 const getSingleOfflinePayment = catchAsync(async (req, res) => {
   const result = await offlinePaymentService.getSingleOfflinePaymentQuery(
@@ -84,7 +80,6 @@ const getSingleOfflinePayment = catchAsync(async (req, res) => {
     message: 'Single OfflinePayment successful!!',
   });
 });
-
 
 const getSingleOfflinePaymentRequestAccept = catchAsync(async (req, res) => {
   const { userId } = req.user;

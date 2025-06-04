@@ -25,6 +25,52 @@ const createInvitePeople = catchAsync(async (req, res) => {
   });
 });
 
+const leaveRequestTenant = catchAsync(async (req, res) => {
+  const { userId } = req.user;
+
+  const result =
+    await invitePeopleService.leaveRequestTenant(userId);
+
+  // Send response
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Leave Request successfully!',
+    data: result,
+  });
+});
+
+const acceptleaveRequestTenant = catchAsync(async (req, res) => {
+  const {id} = req.params;
+  const { userId } = req.user;
+
+  const result =
+    await invitePeopleService.accpetleaveRequestByLandloard(userId, id);
+
+  // Send response
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Accept Leave Request successfully!',
+    data: result,
+  });
+});
+const deleteTenantByLandlord = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  const result = await invitePeopleService.deletedInvitePeopleQuery(
+    id
+  );
+
+  // Send response
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: ' Delete InvitePeople successfully!',
+    data: result,
+  });
+});
+
 const getAllInvitePeopleByLandlordByTenant = catchAsync(async (req, res) => {
   const userId = req.user.userId;
   const { meta, result } =
@@ -215,6 +261,9 @@ const deleteSingleInvitePeople = catchAsync(async (req, res) => {
 
 export const invitePeopleController = {
   createInvitePeople,
+  leaveRequestTenant,
+  acceptleaveRequestTenant,
+  deleteTenantByLandlord,
   getAllInvitePeopleByLandlordByTenant,
   // getAllInvitePeopleByTenant,
   getCurrentInvitedTenant,

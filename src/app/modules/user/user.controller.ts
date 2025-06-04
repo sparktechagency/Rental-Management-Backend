@@ -31,6 +31,18 @@ const userCreateVarification = catchAsync(async (req, res) => {
   });
 });
 
+const createAdmin = catchAsync(async (req, res) => {
+  const payload = req.body;
+  const newUser = await userService.createAdmin(payload);
+
+  return sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Admin create successfully',
+    data: newUser,
+  });
+});
+
 // const userSwichRole = catchAsync(async (req, res) => {
 //   const { userId } = req.user;
 //   const newUser = await userService.userSwichRoleService(userId);
@@ -178,7 +190,8 @@ const updateMyProfile = catchAsync(async (req: Request, res: Response) => {
 });
 
 const blockedUser = catchAsync(async (req: Request, res: Response) => {
-  const result = await userService.blockedUser(req.params.id);
+  const { userId } = req.user;
+  const result = await userService.blockedUser(req.params.id, userId);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -200,6 +213,7 @@ const deleteMyAccount = catchAsync(async (req: Request, res: Response) => {
 export const userController = {
   createUser,
   userCreateVarification,
+  createAdmin,
   // userSwichRole,
   googleLogin,
   appleLogin,

@@ -14,6 +14,14 @@ invitePeopleRouter
     // validateRequest(videoValidation.VideoSchema),
     invitePeopleController.createInvitePeople,
   )
+  .post(
+    '/leave-request-tenant',
+    auth(USER_ROLE.TENANT),
+
+    // validateRequest(videoValidation.VideoSchema),
+    invitePeopleController.leaveRequestTenant,
+  )
+
   .get(
     '/landlord-tenant',
     auth(USER_ROLE.LANDLORD, USER_ROLE.TENANT),
@@ -63,6 +71,18 @@ invitePeopleRouter
     '/invite-verify/:id',
     auth(USER_ROLE.LANDLORD),
     invitePeopleController.inviteRequestVerifyByLandlord,
+  )
+  .patch(
+    '/accept-leave-request/:id',
+    auth(USER_ROLE.LANDLORD),
+    invitePeopleController.acceptleaveRequestTenant,
+  )
+  .patch(
+    '/delete-tenant/:id',
+    auth(USER_ROLE.LANDLORD),
+
+    // validateRequest(videoValidation.VideoSchema),
+    invitePeopleController.deleteTenantByLandlord,
   )
 
   .delete(

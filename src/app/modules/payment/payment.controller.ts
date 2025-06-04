@@ -6,6 +6,7 @@ import Stripe from 'stripe';
 import AppError from '../../error/AppError';
 import config from '../../config';
 import { StripeAccount } from '../stripeAccount/stripeAccount.model';
+import { User } from '../user/user.models';
 // import { StripeAccount } from '../stripeAccount/stripeAccount.model';
 
 
@@ -330,6 +331,7 @@ const successPageAccount = catchAsync(async (req, res) => {
     // return res.redirect(`${req.protocol + '://' + req.get('host')}/payment/refreshAccountConnect/${id}`);
   }
   await StripeAccount.updateOne({ accountId: id }, { isCompleted: true });
+  await User.updateOne({ _id: req.user.userId }, { paymentAccount: true });
 
   res.render('success-account.ejs');
 });
@@ -341,7 +343,7 @@ const refreshAccountConnect = catchAsync(async (req, res) => {
     req.get('host') || '',
     req.protocol,
   );
-  res.redirect(url);
+  res.redirect(url); 
 });
 
 const createStripeAccount = catchAsync(async (req, res) => {

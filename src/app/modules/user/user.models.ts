@@ -79,6 +79,10 @@ const userSchema = new Schema<TUser>(
       type: Boolean,
       default: true,
     },
+    paymentAccount: {
+      type: Boolean,
+      default: false,
+    },
     isDeleted: {
       type: Boolean,
       default: false,

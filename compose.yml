@@ -1,0 +1,11 @@
+
+service :
+  app:
+    container_name: app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:5000"
+    volumes:
+      - .:/app
