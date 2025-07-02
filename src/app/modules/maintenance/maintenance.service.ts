@@ -8,34 +8,57 @@ import Maintenance from './maintenance.model';
 import InvitePeople from '../invitePeople/invitePeople.model';
 import { sendEmail } from '../../utils/mailSender';
 import Agreement from '../agreement/agreement.model';
+import { notificationService } from '../notification/notification.service';
+import { unlink } from 'fs/promises';
 
 const createMaintenanceService = async (payload: TMaintenance) => {
-  const tenantUser = await User.findById(payload.tenantUserId);
-  if (!tenantUser) {
-    throw new AppError(404, 'Tenant User Not Found!!');
-  }
+  try {
+    const tenantUser = await User.findById(payload.tenantUserId);
+    if (!tenantUser) {
+      throw new AppError(404, 'Tenant User Not Found!!');
+    }
 
-  const property = await Property.findById(payload.propertyId);
-  if (!property) {
-    throw new AppError(404, 'Property is Not Found!!');
-  }
-  payload.landlordUserId = property.landlordUserId;
+    const property = await Property.findById(payload.propertyId);
+    if (!property) {
+      throw new AppError(404, 'Property is Not Found!!');
+    }
+    payload.landlordUserId = property.landlordUserId;
 
-  const landlordUser = await User.findById(payload.landlordUserId);
-  if (!landlordUser) {
-    throw new AppError(404, 'Landlord User Not Found!!');
-  }
+    const landlordUser = await User.findById(payload.landlordUserId);
+    if (!landlordUser) {
+      throw new AppError(404, 'Landlord User Not Found!!');
+    }
 
-  const result = await Maintenance.create(payload);
+    const invitedPeople = await InvitePeople.findOne({
+      tenantUserId: payload.tenantUserId,
+      propertyId: payload.propertyId,
+      status: 'invited',
+      cancelStatus: { $in: ['cancel_request', 'pending'] },
+    });
 
-  if (!result) {
-    throw new AppError(403, 'Maintenance create is faild!!');
-  }
-  if (result) {
-    sendEmail(
-      landlordUser.email,
-      'Property Maintenance Message From Tenant',
-      `<html>  
+    // console.log('invitedPeople', invitedPeople);
+
+    if (!invitedPeople) {
+      throw new AppError(404, 'you are not valid invited to this property');
+    }
+
+    const result = await Maintenance.create(payload);
+
+    if (!result) {
+      throw new AppError(403, 'Maintenance create is faild!!');
+    }
+    const notificationData = {
+      userId: landlordUser._id,
+      message: 'You have a new maintenance request from tenant!',
+      type: 'success',
+    };
+    const notification =
+      notificationService.createNotification(notificationData);
+    if (result) {
+      sendEmail(
+        landlordUser.email,
+        'Property Maintenance Message From Tenant',
+        `<html>  
   <body>
     <h2>Dear ${landlordUser.fullName},</h2>
     
@@ -60,21 +83,31 @@ const createMaintenanceService = async (payload: TMaintenance) => {
 </html>
 
           `,
-    );
+      );
+    }
+    return result;
+  } catch (error:any) {
+    console.log('error', error);
+    // unlink file path
+    const filePath = payload.images.map((item: any) => unlink(`public/${item}`));
+    throw new AppError(error.statusCode, error.message);
+
   }
-  return result;
 };
 
 const getAllMaintenanceByLandlordUserPropertyIdQuery = async (
-  query: Record<string, unknown>, userId: string
+  query: Record<string, unknown>,
+  userId: string,
 ) => {
- 
   const maintenanceQuery = new QueryBuilder(
     Maintenance.find({
       //   propertyId,
       //   isDeleted: false,
-      landlordUserId: userId
-    }).populate('tenantUserId').populate('landlordUserId').populate('propertyId'),
+      landlordUserId: userId,
+    })
+      .populate('tenantUserId')
+      .populate('landlordUserId')
+      .populate('propertyId'),
     query,
   )
     .search([''])
@@ -111,7 +144,10 @@ const getAllMaintenanceByTenantUserIDByPropertyIdQuery = async (
       tenantUserId,
       propertyId: property._id,
       //   isDeleted: false,
-    }).populate('tenantUserId').populate('landlordUserId').populate('propertyId'),
+    })
+      .populate('tenantUserId')
+      .populate('landlordUserId')
+      .populate('propertyId'),
     query,
   )
     .search([''])
@@ -265,6 +301,13 @@ const updateSingleMaintenanceApprovedCancelByLandlordQuery = async (
   if (!result) {
     throw new AppError(403, 'Maintenance Message requiest faild!');
   }
+
+  const notificationData = {
+    userId: tenantUser._id,
+    message: `Your maintenance request has been ${payload.status} by landlord`,
+    type: 'success',
+  };
+  const notification = notificationService.createNotification(notificationData);
 
   if (result.status === 'solved') {
     sendEmail(
