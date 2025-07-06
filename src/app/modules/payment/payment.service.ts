@@ -117,7 +117,7 @@ const getAllPaymentService = async (query: Record<string, unknown>) => {
     .search(['name'])
     .filter()
     .sort()
-    .paginate()
+    // .paginate()
     .fields();
 
   const result = await PaymentQuery.modelQuery;
@@ -147,7 +147,7 @@ const getAllPaymentTenantLandlordService = async (
     .search(['name'])
     .filter()
     .sort()
-    .paginate()
+    // .paginate()
     .fields();
 
   const result = await PaymentQuery.modelQuery;
