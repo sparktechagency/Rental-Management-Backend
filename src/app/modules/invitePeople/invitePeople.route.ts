@@ -61,11 +61,20 @@ invitePeopleRouter
     '/property/:id',
     invitePeopleController.getSingleInvitePeopleByPropertyId,
   )
+  .get(
+    '/property-by-invited-tenant/:id',
+    invitePeopleController.getAllInvitePeopleByPropertyId,
+  )
   .get('/:id', invitePeopleController.getSingleInvitePeople)
   .patch(
     '/accept/:id',
     auth(USER_ROLE.TENANT),
     invitePeopleController.updateSingleInvitePeopleAccept,
+  )
+  .patch(
+    '/cancel/:id',
+    auth(USER_ROLE.TENANT),
+    invitePeopleController.updateSingleInvitePeopleCancel,
   )
   .patch(
     '/invite-verify/:id',

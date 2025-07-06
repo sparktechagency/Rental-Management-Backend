@@ -13,6 +13,7 @@ import Announcement from '../announcements/announcements.model';
 import OfflinePayment from '../offlinePayment/offlinePayment.model';
 import DuePayment from '../rentDue/rentDue.model';
 import Chat from '../chat/chat.model';
+import { notificationService } from '../notification/notification.service';
 
 const createInvitePeopleService = async (payload: TInvitePeople) => {
   const landlordUser = await User.findById(payload.landlordUserId);
@@ -62,6 +63,38 @@ const createInvitePeopleService = async (payload: TInvitePeople) => {
     await Chat.create({
       participants: [result.landlordUserId, result.tenantUserId],
     });
+
+
+    const notificationData ={
+      userId: tenantUser._id,
+      message: 'You have a new invite request from landlord!',
+      type:  'success'
+    }
+
+    await notificationService.createNotification(notificationData);
+
+//     sendEmail(
+//       tenantUser.email,
+//       'You have a new invite request from landlord!',
+//       `<html>  
+//   <body>
+//     <h2>Dear ${tenantUser.fullName},</h2>
+    
+//     <p>We are pleased to inform you that the landlord has sent you an invite for their property. Please review the details of the invitation below.</p>
+    
+//     <p><strong>Property Name:</strong> ${property.name}</p>
+    
+//     <p>The landlord is looking forward to having you as a tenant for this property. If you are interested, please respond to the invitation to proceed further.</p>
+    
+//     <p>If you have any questions or need further assistance, please feel free to reach out to our support team. We are happy to help!</p>
+    
+//     <p>Thank you for your attention, and we hope to hear from you soon.</p>
+    
+//     <p>Best regards,</p>
+//     <p><strong>${landlordUser.fullName}</strong></p>
+//   </body>
+// </html>`,
+//     );
   }
   return result;
 };
@@ -233,6 +266,37 @@ const getSingleInvitePeopleByPropertyIdQuery = async (id: string) => {
   } else {
     return result;
   }
+};
+
+
+// allinvited tenant people get by property id
+const getAllInvitePeopleByPropertyIdQuery = async (id: string, query: Record<string, unknown>) => {
+  const property = await Property.findById(id);
+  if (!property) {
+    throw new AppError(404, 'Property is Not Found!!');
+  }
+  const invitePeopleQuery = new QueryBuilder(
+    InvitePeople.find({
+      // [userField]: userId,
+      //   isDeleted: false,
+      status:['invited', 'request_accept_verify', 'invite_request', 'rejected'],
+      cancelStatus:['pending', 'cancel_request'],
+      propertyId: id,
+    })
+      .populate('landlordUserId')
+      .populate('tenantUserId')
+      .populate('propertyId'),
+    query,
+  )
+    .search([''])
+    .filter()
+    .sort()
+    .paginate()
+    .fields();
+
+  const result = await invitePeopleQuery.modelQuery;
+  const meta = await invitePeopleQuery.countTotal();
+  return { meta, result };
 };
 
 const getCurrentInvitedTenant = async (tenantUserId: string) => {
@@ -731,7 +795,7 @@ const getRuningCalendarInfoByLandlordQuery = async (landlordUserId: string) => {
   return output;
 };
 
-const getSingleInvitePeopleAcceptQuery = async (id: string, userId: string) => {
+const singleInvitePeopleAcceptQuery = async (id: string, userId: string) => {
   if (!id) {
     throw new AppError(400, 'Invalid input parameters');
   }
@@ -767,6 +831,13 @@ const getSingleInvitePeopleAcceptQuery = async (id: string, userId: string) => {
   if (!property) {
     throw new AppError(404, 'Property is Not Found!!');
   }
+  const notificationData = {
+    userId: result.landlordUserId,
+    message: `Your Property ${property.name} is accepted by ${tenantUserExist.fullName}.`,
+    type: 'success',
+  };
+
+  await notificationService.createNotification(notificationData);
   if (result.status === 'request_accept_verify') {
     // Send verification email to the landlord
     sendEmail(
@@ -799,6 +870,78 @@ const getSingleInvitePeopleAcceptQuery = async (id: string, userId: string) => {
   return result;
 };
 
+
+const singleInvitePeopleCancelQuery = async (id: string, userId: string) => {
+  if (!id) {
+    throw new AppError(400, 'Invalid input parameters');
+  }
+
+  const isExist = await InvitePeople.findById(id);
+  if (!isExist) {
+    throw new AppError(404, 'InvitePeople not found!');
+  }
+  if (isExist.tenantUserId.toString() !== userId.toString()) {
+    throw new AppError(404, 'You are not valid tenant User!');
+  }
+
+  const result = await InvitePeople.findByIdAndUpdate(
+    id,
+    {
+      status: 'rejected',
+    },
+    { new: true },
+  );
+  if (!result) {
+    throw new AppError(404, 'InvitePeople Deleted Faild!!');
+  }
+
+  const LandlordUserExist = await User.findById(result.landlordUserId);
+  if (!LandlordUserExist) {
+    throw new AppError(404, 'Landlord User Not Found!!');
+  }
+  const tenantUserExist = await User.findById(result.tenantUserId);
+  if (!tenantUserExist) {
+    throw new AppError(404, 'Tenant User Not Found!!');
+  }
+  const property = await Property.findById(result.propertyId);
+  if (!property) {
+    throw new AppError(404, 'Property is Not Found!!');
+  }
+  const notificationData = {
+    userId: result.landlordUserId,
+    message: `Your Property ${property.name} is canceled by ${tenantUserExist.fullName}.`,
+    type: 'success',
+  };
+
+  await notificationService.createNotification(notificationData);
+  if (result.status === 'rejected') {
+    // Send verification email to the landlord
+    sendEmail(
+      LandlordUserExist.email,
+      'Property Invited Rejected Successfully From Tenant',
+      `<html>  
+  <body>
+    <h2>Dear ${LandlordUserExist.fullName},</h2>
+    
+    <p>We regret to inform you that the tenant has decided to reject your property invitation. Unfortunately, the property will not be listed on our platform at this time.</p>
+    
+    <p><strong>Property Name:</strong> ${property.name}</p>
+    
+    <p>If you would like to discuss the reasons behind the rejection or need any further assistance, please feel free to contact us. We are happy to help.</p>
+    
+    <p>Thank you for your understanding, and we hope to work with you again in the future.</p>
+    
+    <p>Best regards,</p>
+    <p><strong>${tenantUserExist.fullName}</strong></p>
+  </body>
+</html>
+`,
+    );
+  }
+
+  return result;
+};
+
 const updateSingleInvitePeopleVerifyQuery = async (
   id: string,
   userId: string,
@@ -818,6 +961,9 @@ const updateSingleInvitePeopleVerifyQuery = async (
   if (isExist.status === 'invited') {
     throw new AppError(404, 'Tenant is already Verified!!');
   }
+  if (isExist.status === 'rejected') {
+    throw new AppError(404, 'Tenant is already Rejected!!');
+  }
 
   if (isExist.status !== 'request_accept_verify') {
     throw new AppError(404, 'This is not valid action!!');
@@ -833,6 +979,8 @@ const updateSingleInvitePeopleVerifyQuery = async (
   if (!result) {
     throw new AppError(404, 'InvitePeople Deleted Faild!!');
   }
+
+  const deletedInvitePeople = await InvitePeople.deleteMany({propertyId: result.propertyId, status: 'rejected'});
 
   const tenantUserExist = await User.findById(result.tenantUserId);
   if (!tenantUserExist) {
@@ -917,11 +1065,13 @@ export const invitePeopleService = {
   // getAllInvitePeopleByTenantUserQuery,
   getSingleInvitePeopleQuery,
   getSingleInvitePeopleByPropertyIdQuery,
+  getAllInvitePeopleByPropertyIdQuery,
   getCurrentInvitedTenant,
   getRuningInviteTenantPropertyDeuQuery,
   getRuningOverviewLandlordQuery,
   getRuningCalendarInfoByTenantQuery,
   getRuningCalendarInfoByLandlordQuery,
   updateSingleInvitePeopleVerifyQuery,
-  getSingleInvitePeopleAcceptQuery
+  singleInvitePeopleAcceptQuery,
+  singleInvitePeopleCancelQuery,
 };

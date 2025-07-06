@@ -22,7 +22,7 @@ const invitePeopleSchema = new Schema<TInvitePeople>(
     status: {
       type: String,
       required: true,
-      enum: ['invite_request', 'request_accept_verify', 'invited'],
+      enum: ['invite_request', 'request_accept_verify', 'invited', 'rejected'],
       default: 'invite_request',
     },
     cancelStatus: {

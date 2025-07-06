@@ -3,6 +3,7 @@ import sendResponse from '../../utils/sendResponse';
 import httpStatus from 'http-status';
 import AppError from '../../error/AppError';
 import { invitePeopleService } from './invitePeople.service';
+import { query } from 'express';
 
 const createInvitePeople = catchAsync(async (req, res) => {
   const invitePeopleData = req.body;
@@ -134,6 +135,21 @@ const getSingleInvitePeopleByPropertyId = catchAsync(async (req, res) => {
 });
 
 
+const getAllInvitePeopleByPropertyId = catchAsync(async (req, res) => {
+  const result = await invitePeopleService.getAllInvitePeopleByPropertyIdQuery(
+    req.params.id,
+    req.query
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    data: result,
+    message: 'All InvitePeople by property  are requered successful!!',
+  });
+});
+
+
 const getRuningInviteTenantDue = catchAsync(async (req, res) => {
   const { userId } = req.user;
   const result =
@@ -213,9 +229,24 @@ const getRuningCalendarInfoByLandlordQuery = catchAsync(async (req, res) => {
 
 const updateSingleInvitePeopleAccept = catchAsync(async (req, res) => {
   const { userId } = req.user;
-  const result = await invitePeopleService.getSingleInvitePeopleAcceptQuery(
+  const result = await invitePeopleService.singleInvitePeopleAcceptQuery(
     req.params.id,
-    userId
+    userId,
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    data: result,
+    message: 'Single InvitePeople accept successful!!',
+  });
+});
+
+const updateSingleInvitePeopleCancel = catchAsync(async (req, res) => {
+  const { userId } = req.user;
+  const result = await invitePeopleService.singleInvitePeopleCancelQuery(
+    req.params.id,
+    userId,
   );
 
   sendResponse(res, {
@@ -273,7 +304,9 @@ export const invitePeopleController = {
   getRuningCalendarInfoByLandlordQuery,
   getSingleInvitePeople,
   getSingleInvitePeopleByPropertyId,
+  getAllInvitePeopleByPropertyId,
   updateSingleInvitePeopleAccept,
+  updateSingleInvitePeopleCancel,
   inviteRequestVerifyByLandlord,
   deleteSingleInvitePeople,
 };
