@@ -1,11 +1,11 @@
 {
-  "name": "pro-mentors-backend",
+  "name": "rental-management-backend",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
     "build": "tsc",
     "generate": "node generateFolder.ts",
-    "dev": "ts-node-dev --respawn --transpile-only src/server.dev.ts",
+    "dev": "ts-node-dev --respawn --transpile-only src/dev.server.ts",
     "lint:check": "eslint --ignore-path .eslintignore --ext .js,.ts .",
     "lint:fix": "eslint . --fix",
     "start": "node ./dist/server.js",
@@ -16,7 +16,7 @@
     "start:prod": "node ./dist/server.js",
     "prepare": "husky"
   },
-  "author": "Md. Sohag Hossain",
+  "author": "Md. Humayon Forid",
   "license": "ISC",
   "description": "",
   "lint-staged": {
