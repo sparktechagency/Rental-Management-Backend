@@ -73,28 +73,28 @@ const createInvitePeopleService = async (payload: TInvitePeople) => {
 
     await notificationService.createNotification(notificationData);
 
-//     sendEmail(
-//       tenantUser.email,
-//       'You have a new invite request from landlord!',
-//       `<html>  
-//   <body>
-//     <h2>Dear ${tenantUser.fullName},</h2>
+    sendEmail(
+      tenantUser.email,
+      'You have a new invite request from landlord!',
+      `<html>  
+  <body>
+    <h2>Dear ${tenantUser.fullName},</h2>
     
-//     <p>We are pleased to inform you that the landlord has sent you an invite for their property. Please review the details of the invitation below.</p>
+    <p>We are pleased to inform you that the landlord has sent you an invite for their property. Please review the details of the invitation below.</p>
     
-//     <p><strong>Property Name:</strong> ${property.name}</p>
+    <p><strong>Property Name:</strong> ${property.name}</p>
     
-//     <p>The landlord is looking forward to having you as a tenant for this property. If you are interested, please respond to the invitation to proceed further.</p>
+    <p>The landlord is looking forward to having you as a tenant for this property. If you are interested, please respond to the invitation to proceed further.</p>
     
-//     <p>If you have any questions or need further assistance, please feel free to reach out to our support team. We are happy to help!</p>
+    <p>If you have any questions or need further assistance, please feel free to reach out to our support team. We are happy to help!</p>
     
-//     <p>Thank you for your attention, and we hope to hear from you soon.</p>
+    <p>Thank you for your attention, and we hope to hear from you soon.</p>
     
-//     <p>Best regards,</p>
-//     <p><strong>${landlordUser.fullName}</strong></p>
-//   </body>
-// </html>`,
-//     );
+    <p>Best regards,</p>
+    <p><strong>${landlordUser.fullName}</strong></p>
+  </body>
+</html>`,
+    );
   }
   return result;
 };
@@ -995,6 +995,14 @@ const updateSingleInvitePeopleVerifyQuery = async (
   if (!property) {
     throw new AppError(404, 'Property is Not Found!!');
   }
+
+  const notificationData = {
+    userId: result.tenantUserId,
+    message: `Your Property ${property.name} is verified by ${landlordUserExist.fullName}.`,
+    type: 'success',
+  };
+
+  await notificationService.createNotification(notificationData);
 
   if (result.status === 'invited') {
     // Send verification email to the landlord
