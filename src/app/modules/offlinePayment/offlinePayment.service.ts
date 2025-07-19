@@ -273,6 +273,7 @@ const singleOfflinePaymentAcceptQuery = async (
       transactionId: offlinePayment.transactionId,
       invitedPropertyId: runninginvitePeople._id,
       status: 'paid',
+      adminChargeAmount:0
     };
     console.log('paymentData', paymentData);
 
