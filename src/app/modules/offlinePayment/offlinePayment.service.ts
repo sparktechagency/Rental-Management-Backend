@@ -260,6 +260,10 @@ const singleOfflinePaymentAcceptQuery = async (
       { new: true, session },
     );
 
+    if (!result) {
+      throw new AppError(403, 'OfflinePayment Deleted Faild!!');
+    }
+
     const paymentData = {
       tenantUserId: offlinePayment.tenantUserId,
       landlordUserId: offlinePayment.landlordUserId,
@@ -319,9 +323,9 @@ const singleOfflinePaymentAcceptQuery = async (
       session,
     );
 
-    await session.commitTransaction();
+    
 
-    if (result) {
+
       sendEmail(
         tenant.email,
         'Offline Payment Accepted by Landlord',
@@ -348,11 +352,14 @@ const singleOfflinePaymentAcceptQuery = async (
 </html>
 `,
       );
-    }
+ 
 
     return result;
   } catch (error) {
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+    // await session.abortTransaction();
     throw error;
   } finally {
     session.endSession();
