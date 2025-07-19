@@ -313,6 +313,8 @@ const singleOfflinePaymentAcceptQuery = async (
       throw new AppError(404, 'Property Not Found!!');
     }
 
+   await session.commitTransaction();
+
     const notificationData = {
       userId: offlinePayment.tenantUserId,
       message: `Offline Payment Accepted by Landlord`,
@@ -352,8 +354,8 @@ const singleOfflinePaymentAcceptQuery = async (
 </html>
 `,
       );
- 
 
+     
     return result;
   } catch (error) {
     if (session.inTransaction()) {
