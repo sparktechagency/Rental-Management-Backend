@@ -5,6 +5,7 @@ import socketIO from './socketio';
 import { Server as SocketIOServer } from 'socket.io'; 
 import colors from 'colors';
 import config from './app/config';
+import { createSuperAdmin } from './app/DB';
 
 let server: Server;
 const socketServer = createServer();
@@ -63,6 +64,8 @@ async function main() {
         ).bold,
       );
     });
+
+       await createSuperAdmin();
 
     // Initialize your Socket.IO handlers
     socketIO(io);
